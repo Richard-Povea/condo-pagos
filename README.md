@@ -15,6 +15,8 @@ src/
     ├── use_cases/        # Casos de uso, puertos (interfaces) y DTOs de entrada/salida
     └── infrastructure/   # Adaptadores concretos (Base de datos SQLAlchemy, ReportLab, FileSystem)
 
+```
+
 📋 Contrato de Casos de Uso (API para la UI)
 1. RegistrarPagoUseCase
 Registra un nuevo pago, aplica los fondos a los cargos pendientes de una unidad, genera un snapshot inmutable, renderiza el comprobante PDF y lo almacena de forma atómica.
@@ -78,3 +80,17 @@ psql "$DATABASE_URL" -f docker/postgres/01-schema.sql
 Para levantar los servicios de infraestructura necesarios localmente:
 
 docker compose up -d db
+
+# Documentación del Módulo de Interfaz (UI) - Condominios
+
+## 📐 Estructura de Wireframes y Diseño
+La interfaz del módulo de pagos está diseñada bajo un enfoque de alta velocidad y cero ambigüedad para cajeros y administradores:
+- **Estilo Base:** Qt Fusion con paleta limpia y tokens centralizados en `condo_pagos.ui.theme.tokens`.
+- **Navegación Lateral:** Sidebar fija con accesos directos a:
+  1. **Registrar pago** (Pantalla principal con desglose de deuda y opciones rápidas como *"Pagar todo"* o *"Solo el más antiguo"*).
+  2. **Unidades** (Gestión y consulta de saldos).
+  3. **Pagos** (Historial y reemisión de comprobantes).
+  4. **Configuración** (Ajustes locales y operador).
+
+## 🛡️ Contrato de Errores UI
+Cualquier excepción controlada (`ErrorDeAplicacion` o `ErrorDeInfraestructura`) que emita el backend es interceptada por el `Worker` asíncrono y traducida a un mensaje claro en la interfaz sin exponer trazas técnicas.

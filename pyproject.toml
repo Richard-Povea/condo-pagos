@@ -36,7 +36,11 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
-markers = ["integration: requiere PostgreSQL (docker compose --profile test up -d db_test)"]
+markers = [
+    "integration: requiere PostgreSQL (docker compose --profile test up -d db_test)",
+    "unit: Tests unitarios de lógica y componentes",
+    "integration: Tests que involucran base de datos o adaptadores reales",
+]
 
 [tool.ruff]
 line-length = 100
