@@ -65,3 +65,36 @@ class Cargo:
         self.saldo = cuantizar(nuevo_saldo)
         if self.saldo > Decimal("0"):
             self.estado = EstadoCargo.PENDIENTE
+
+    def esta_pendiente(self) -> bool:
+        """Regla de dominio: un cargo está pendiente si tiene saldo por cobrar y no está anulado."""
+        return self.saldo > Decimal("0") and self.estado != EstadoCargo.ANULADO
+
+
+class EstadoPago(StrEnum):
+    VIGENTE = "VIGENTE"
+    ANULADO = "ANULADO"
+
+
+@dataclass
+class Pago:
+    id: UUID
+    unidad_id: UUID
+    monto: Decimal
+    metodo_pago: str
+    referencia: str
+    residente_nombre: str
+    fecha: date
+    folio: str
+    exceso: Decimal = Decimal("0")
+    estado: EstadoPago = EstadoPago.VIGENTE
+
+    def __post_init__(self) -> None:
+        self.monto = cuantizar(self.monto)
+        self.exceso = cuantizar(self.exceso)
+
+    def anular(self) -> None:
+        """Marca el pago como anulado."""
+        if self.estado == EstadoPago.ANULADO:
+            raise DominioError("El pago ya se encuentra anulado.")
+        self.estado = EstadoPago.ANULADO
