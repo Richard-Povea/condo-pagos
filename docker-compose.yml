@@ -1,0 +1,49 @@
+name: condo-pagos
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: condo_db
+    environment:
+      POSTGRES_USER: condo_app
+      POSTGRES_PASSWORD: condo_dev_pw
+      POSTGRES_DB: condo_dev
+      TZ: America/Santiago
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Se ejecuta solo en el primer arranque (volumen vacío).
+      # Para reiniciar: docker compose down -v
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U condo_app -d condo_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # BD efímera y rápida para tests de integración (docker compose --profile test up -d db_test)
+  db_test:
+    profiles: ["test"]
+    image: postgres:16-alpine
+    container_name: condo_db_test
+    environment:
+      POSTGRES_USER: condo_test
+      POSTGRES_PASSWORD: condo_test_pw
+      POSTGRES_DB: condo_test
+      TZ: America/Santiago
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: ["postgres", "-c", "fsync=off", "-c", "synchronous_commit=off"]
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U condo_test -d condo_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

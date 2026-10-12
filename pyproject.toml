@@ -1,0 +1,59 @@
+[project]
+name = "condo-pagos"
+version = "0.1.0"
+description = "Registro de pagos de gastos comunes y comprobantes PDF"
+requires-python = ">=3.11"
+dependencies = [
+    "PySide6>=6.7",
+    "SQLAlchemy>=2.0.30",
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.3",
+    "reportlab>=4.2",
+]
+
+[project.gui-scripts]
+condo-pagos = "condo_pagos.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8", "pytest-qt>=4.4", "pytest-cov", "hypothesis>=6.0.0", "pypdf>=4",
+    "ruff", "mypy", "import-linter>=2", "alembic>=1.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["integration: requiere PostgreSQL (docker compose --profile test up -d db_test)"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.mypy]
+strict = true
+files = ["src"]
+
+[tool.importlinter]
+root_package = "condo_pagos"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Capas de Clean Architecture"
+type = "layers"
+layers = [
+    "condo_pagos.ui | condo_pagos.infrastructure",
+    "condo_pagos.use_cases",
+    "condo_pagos.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Dominio y casos de uso no conocen frameworks"
+type = "forbidden"
+source_modules = ["condo_pagos.domain", "condo_pagos.use_cases"]
+forbidden_modules = ["PySide6", "sqlalchemy", "psycopg", "reportlab"]
