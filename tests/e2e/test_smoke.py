@@ -1,11 +1,8 @@
-from datetime import date
-from decimal import Decimal
-from pathlib import Path
-from uuid import uuid4
 
 import pytest
 
 from condo_pagos.bootstrap import build_container
+
 # Importa los comandos o DTOs que reciba tu caso de uso de registrar pago
 # (Ajusta los nombres según las clases reales de tu capa de aplicación)
 # from condo_pagos.use_cases.registrar_pago import RegistrarPagoCommand 

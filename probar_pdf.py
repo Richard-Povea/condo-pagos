@@ -1,11 +1,12 @@
-from pathlib import Path
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 from uuid import uuid4
 
 from condo_pagos.domain.comprobante import ComprobanteData, LineaCargo
 from condo_pagos.infrastructure.pdf_generator.reportlab_renderer import ReportLabPdfRenderer
 from condo_pagos.infrastructure.storage.filesystem_storage import FileSystemStorage
+
 
 def main():
     print("Generando comprobante de prueba...")
@@ -40,7 +41,7 @@ def main():
     ruta_relativa = storage.guardar(comprobante.folio, pdf_bytes)
 
     archivo_final = Path("output_debug") / ruta_relativa
-    print(f"¡PDF generado con éxito!")
+    print("¡PDF generado con éxito!")
     print(f"Ruta del archivo: {archivo_final.resolve()}")
 
 if __name__ == "__main__":
