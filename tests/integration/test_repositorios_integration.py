@@ -4,12 +4,12 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
-from condo_pagos.infrastructure.database.bootstrap import verificar_esquema
-from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 
 from condo_pagos.domain.entities import Cargo, EstadoCargo, EstadoPago, Pago
 from condo_pagos.domain.errors import DominioError
+from condo_pagos.infrastructure.database.bootstrap import verificar_esquema
 from condo_pagos.infrastructure.database.engine import SessionLocal
+from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 
 
 @pytest.fixture(scope="session", autouse=True)

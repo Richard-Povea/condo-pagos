@@ -16,8 +16,16 @@ condo-pagos = "condo_pagos.main:main"
 
 [dependency-groups]
 dev = [
-    "pytest>=8", "pytest-qt>=4.4", "pytest-cov", "hypothesis>=6.0.0", "pypdf>=4",
-    "ruff", "mypy", "import-linter>=2", "alembic>=1.13",
+    "pytest>=8",
+    "pytest-qt>=4.4",
+    "pytest-cov",
+    "hypothesis>=6.0.0",
+    "pypdf>=4",
+    "ruff",
+    "mypy",
+    "import-linter>=2",
+    "alembic>=1.13",
+    "pytest-repeat>=0.9.4",
 ]
 
 [build-system]

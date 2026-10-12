@@ -1,18 +1,19 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool  # <-- Importar NullPool
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://condo_app:condo_dev_pw@localhost:5432/condo_dev"
+    "postgresql+psycopg://condo_test:condo_test_pw@localhost:5433/condo_test"
 )
 
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     future=True,
-    # Configurar el search_path para que el esquema 'gc' sea el principal
-    connect_args={"options": "-c search_path=gc,public"}
+    connect_args={"options": "-c search_path=gc,public"},
+    poolclass=NullPool,  # <-- Crucial para pruebas de concurrencia con hilos
 )
 
 SessionLocal = sessionmaker(

@@ -119,19 +119,25 @@ class SqlAlchemyPagosRepository(PagosRepository):
         self.session = session
 
     def guardar(self, pago: Pago) -> None:
-        model = PagoModel(
-            id=pago.id,
-            unidad_id=pago.unidad_id,
-            monto=pago.monto,
-            metodo_pago=pago.metodo_pago,
-            referencia=pago.referencia,
-            residente_nombre=pago.residente_nombre,
-            fecha=pago.fecha,
-            folio=pago.folio,
-            exceso=pago.exceso,
-            estado=pago.estado,
-        )
-        self.session.add(model)
+        # Estándar: upsert basado en session.get() por ID
+        model = self.session.get(PagoModel, pago.id)
+        if model:
+            model.estado = pago.estado
+            model.exceso = pago.exceso
+        else:
+            new_model = PagoModel(
+                id=pago.id,
+                unidad_id=pago.unidad_id,
+                monto=pago.monto,
+                metodo_pago=pago.metodo_pago,
+                referencia=pago.referencia,
+                residente_nombre=pago.residente_nombre,
+                fecha=pago.fecha,
+                folio=pago.folio,
+                exceso=pago.exceso,
+                estado=pago.estado,
+            )
+            self.session.add(new_model)
 
     def obtener_por_id(self, pago_id: UUID) -> Pago | None:
         model = self.session.get(PagoModel, pago_id)
@@ -149,7 +155,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
             exceso=model.exceso,
             estado=EstadoPago(model.estado),
         )
-
+    
     def existe_por_referencia(self, referencia: str) -> bool:
         stmt = text(
             "SELECT 1 FROM pagos WHERE referencia = :referencia AND estado = 'VIGENTE'"
@@ -160,10 +166,8 @@ class SqlAlchemyPagosRepository(PagosRepository):
     def listar_recientes_por_unidad(self, unidad_id: UUID, limite: int = 10) -> list[Pago]:
         stmt = text(
             """
-            SELECT (
-            id, unidad_id, monto, metodo_pago, referencia, 
-            residente_nombre, fecha, folio, exceso, estado
-            )
+            SELECT id, unidad_id, monto, metodo_pago, referencia, 
+                   residente_nombre, fecha, folio, exceso, estado
             FROM pagos
             WHERE unidad_id = :unidad_id
             ORDER BY fecha DESC
