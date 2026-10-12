@@ -11,3 +11,6 @@ wheels/
 
 # coverage
 .coverage
+
+# output_debug
+output_debug

@@ -24,8 +24,11 @@ def uow():
     uow_instance = SqlAlchemyUnitOfWork(SessionLocal)
     with uow_instance:
         # Limpiar todas las tablas incluyendo folios_secuencia y reiniciar contadores
+        tables = "gc.comprobantes, gc.pagos, gc.cargos, gc.unidades, gc.folios_secuencia"
         uow_instance.session.execute(
-            text("TRUNCATE TABLE gc.comprobantes, gc.pagos, gc.cargos, gc.unidades, gc.folios_secuencia RESTART IDENTITY CASCADE")
+            text(
+                f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"
+                )
         )
         uow_instance.commit()
     
@@ -198,16 +201,17 @@ def test_5_trigger_inmutabilidad(uow):
 
 def test_6_constraints_check_y_fk(uow):
     """Verificar violaciones de integridad referencial (FK)."""
-    with uow:
-        with pytest.raises(IntegrityError):
-            uow.session.execute(
-                text("""
-                    INSERT INTO gc.cargos (id, unidad_id, periodo, monto_original, saldo, vencimiento, estado)
+    with uow, pytest.raises(IntegrityError):
+        uow.session.execute(
+            text("""
+                    INSERT INTO gc.cargos (
+                    id, unidad_id, periodo, monto_original, 
+                    saldo, vencimiento, estado)
                     VALUES (:id, :unidad_id, '2026-10', 1000, 1000, '2026-10-10', 'PENDIENTE')
                 """),
-                {"id": str(uuid4()), "unidad_id": str(uuid4())}  # Unidad inexistente
-            )
-            uow.commit()
+            {"id": str(uuid4()), "unidad_id": str(uuid4())}  # Unidad inexistente
+        )
+        uow.commit()
 
 
 def test_7_anulacion_restaura_saldos(uow):
