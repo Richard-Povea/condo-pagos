@@ -31,7 +31,7 @@ def test_parsear_monto_invalido():
     with pytest.raises(MontoInvalidoError):
         parsear_monto("125.000,50")  # Con decimales (Chile no usa)
     with pytest.raises(MontoInvalidoError):
-        parsear_monto(125.50)  # Float prohibido
+        parsear_monto(125.50)  # type: ignore # Float prohibido
     with pytest.raises(MontoInvalidoError):
         parsear_monto("-1000")  # Negativo
     with pytest.raises(MontoInvalidoError):

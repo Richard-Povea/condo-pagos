@@ -1,10 +1,10 @@
 from uuid import uuid4
 
-from condo_pagos.domain.entities import Pago, EstadoPago
-from condo_pagos.domain.services import distribuir_pago
 from condo_pagos.domain.comprobante import ComprobanteData, LineaCargo
+from condo_pagos.domain.entities import EstadoPago, Pago
 from condo_pagos.domain.errors import DominioError
-from condo_pagos.use_cases.dto import RegistrarPagoCmd, ComprobanteEmitido
+from condo_pagos.domain.services import distribuir_pago
+from condo_pagos.use_cases.dto import ComprobanteEmitido, RegistrarPagoCmd
 from condo_pagos.use_cases.ports import UnitOfWork
 
 
@@ -23,7 +23,9 @@ class RegistrarPagoUseCase:
 
             # 2. Validar referencia de pago duplicada
             if self.uow.pagos.existe_por_referencia(cmd.referencia):
-                raise DominioError(f"Ya existe un pago registrado con la referencia '{cmd.referencia}'.")
+                raise DominioError(
+                    f"Ya existe un pago registrado con la referencia '{cmd.referencia}'."
+                    )
 
             # 3. Obtener cargos pendientes de la unidad
             cargos_pendientes = self.uow.cargos.obtener_pendientes_por_unidad(cmd.unidad_id)
