@@ -1,6 +1,8 @@
 import pytest
 from PySide6.QtCore import QThreadPool
+
 from condo_pagos.ui.viewmodels.base import BaseViewModel
+
 
 class DummyViewModel(BaseViewModel):
     def __init__(self, pool: QThreadPool | None = None, parent = None) -> None:

@@ -1,7 +1,9 @@
 from pathlib import Path
+
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
+
 
 class ServicioDialogosReal:
     def confirmar(self, titulo: str, texto: str, peligro: bool = False) -> bool:

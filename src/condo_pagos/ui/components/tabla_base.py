@@ -1,4 +1,5 @@
-from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex, QPersistentModelIndex
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
+
 
 class BaseTableModel(QAbstractTableModel):
     def __init__(
@@ -13,13 +14,13 @@ class BaseTableModel(QAbstractTableModel):
 
     def rowCount(
             self, 
-            parent: QModelIndex | QPersistentModelIndex = QModelIndex()
+            parent: QModelIndex | QPersistentModelIndex | None = None
             ) -> int:
         return len(self._datos)
 
     def columnCount(
-            self, 
-            parent: QModelIndex | QPersistentModelIndex = QModelIndex()
+            self,
+            parent: QModelIndex | QPersistentModelIndex | None = None
             ) -> int:
         return len(self._headers)
 
@@ -29,17 +30,14 @@ class BaseTableModel(QAbstractTableModel):
             orientation: Qt.Orientation, 
             role: int = Qt.ItemDataRole.DisplayRole
             ):
-        horizontal = orientation == Qt.Orientation.Horizontal
-        display_role = orientation == Qt.Orientation.Horizontal
-        if horizontal and display_role:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             return self._headers[section]
         return None
 
     def data(
             self, 
             index: QModelIndex | QPersistentModelIndex, 
-            role: int = Qt.ItemDataRole.DisplayRole
-            ):
+            role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
         

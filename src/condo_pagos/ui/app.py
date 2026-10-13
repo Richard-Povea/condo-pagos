@@ -1,15 +1,19 @@
 # src/condo_pagos/ui/app.py (Actualización de soporte global)
-import sys
 import logging
+import sys
+
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtWidgets import QApplication, QMessageBox
+
 from condo_pagos.ui.main_window import MainWindow
 from condo_pagos.ui.theme.theme import generar_qss
 
 log = logging.getLogger(__name__)
 
 def _excepthook(exc_type, exc_value, exc_tb):
-    log.exception("Excepción no controlada capturada globalmente", exc_info=(exc_type, exc_value, exc_tb))
+    log.exception(
+        "Excepción no controlada capturada globalmente", 
+        exc_info=(exc_type, exc_value, exc_tb))
     QMessageBox.critical(
         None,
         "Error Inesperado",
@@ -18,7 +22,9 @@ def _excepthook(exc_type, exc_value, exc_tb):
 
 def main() -> None:
     sys.excepthook = _excepthook
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, 
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough

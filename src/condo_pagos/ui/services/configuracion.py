@@ -1,6 +1,8 @@
 # src/condo_pagos/ui/services/configuracion.py
 import getpass
+
 from PySide6.QtCore import QSettings
+
 
 class ConfiguracionLocal:
     def __init__(self) -> None:

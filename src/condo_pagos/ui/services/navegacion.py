@@ -1,5 +1,6 @@
 # src/condo_pagos/ui/services/navegacion.py
-from typing import Callable
+from collections.abc import Callable
+
 
 class ServicioNavegacion:
     def __init__(self, callback_ir: Callable[[str, dict | None], None]) -> None:

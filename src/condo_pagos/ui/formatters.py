@@ -2,6 +2,7 @@
 from datetime import date
 from decimal import Decimal
 
+
 def fmt_clp(valor: Decimal | int | float) -> str:
     """Formatea montos monetarios en pesos chilenos (ej: $125.000)."""
     if isinstance(valor, float):
