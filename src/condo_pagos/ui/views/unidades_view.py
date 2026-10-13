@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
 from condo_pagos.ui.components.base import Tarjeta
 from condo_pagos.ui.components.tabla_unidades import UnidadesTableModel
 
@@ -64,7 +65,9 @@ class UnidadesView(QWidget):
 
         # --- PANEL DERECHO: Detalle de Unidad seleccionada ---
         self.card_detalle = Tarjeta("Detalle de Unidad")
-        self.lbl_info_detalle = QLabel("Seleccione una unidad para ver su estado de cuenta y cargos pendientes.")
+        self.lbl_info_detalle = QLabel(
+            "Seleccione una unidad para ver su estado de cuenta y cargos pendientes."
+            )
         self.lbl_info_detalle.setStyleSheet("color: #6B7785;")
         self.card_detalle.agregar_widget(self.lbl_info_detalle)
 

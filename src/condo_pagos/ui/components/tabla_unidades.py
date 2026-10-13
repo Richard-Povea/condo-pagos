@@ -1,6 +1,7 @@
 from condo_pagos.ui.components.tabla_base import BaseTableModel
 from condo_pagos.ui.formatters import fmt_clp
 
+
 class UnidadesTableModel(BaseTableModel):
     def __init__(self, unidades: list) -> None:
         headers = ["Unidad", "Responsable", "RUT", "Saldo Total", "Estado"]

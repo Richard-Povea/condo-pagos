@@ -1,7 +1,9 @@
-from decimal import Decimal
-from typing import Any, Callable
+from typing import Any
+
 from PySide6.QtCore import Signal
+
 from condo_pagos.ui.viewmodels.base import BaseViewModel
+
 
 class UnidadesViewModel(BaseViewModel):
     # Señales
