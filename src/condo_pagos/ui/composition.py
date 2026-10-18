@@ -37,6 +37,10 @@ def crear_ventana(container, config: ConfiguracionLocal) -> MainWindow:
         abridor_archivos=abridor,
     )
 
+    # Refrescar las pantallas que dependen del saldo/historial después de registrar.
+    registrar_vm.pago_registrado.connect(lambda _folio: pagos_vm.cargar_pagos())
+    registrar_vm.pago_registrado.connect(unidades_vm.cargar_unidades)
+
     paginas = {
         "registrar_pago": ("Registrar pago", RegistrarPagoView(registrar_vm)),
         "unidades":       ("Unidades",       UnidadesView(unidades_vm)),
