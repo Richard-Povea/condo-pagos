@@ -45,8 +45,9 @@ class RegistrarPagoView(QWidget):
         layout_unidad_info.addWidget(self.lbl_detalle_unidad)
         layout_unidad_info.addStretch()
         layout_unidad_info.addWidget(self.lbl_deuda_total)
-        card_unidad.agregar_widget(
-            QWidget().setLayout(layout_unidad_info) or card_unidad) # Estructura limpia
+        w_unidad_info = QWidget()
+        w_unidad_info.setLayout(layout_unidad_info)
+        card_unidad.agregar_widget(w_unidad_info)
 
         layout_principal.addWidget(card_unidad)
 
