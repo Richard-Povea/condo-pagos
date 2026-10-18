@@ -1,18 +1,19 @@
+"""Punto de entrada de la interfaz gráfica."""
+
 import argparse
 import logging
 import sys
 
 from PySide6.QtCore import QThreadPool, Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
-from condo_pagos.ui.composition import crear_ventana
-from condo_pagos.ui.services.configuracion import ConfiguracionLocal
-from condo_pagos.ui.theme.theme import generar_qss
+from condo_pagos.ui.logging_config import configurar_logging
 
 log = logging.getLogger(__name__)
 
 
 def main() -> None:
+    log_path = configurar_logging()
     parser = argparse.ArgumentParser(description="Módulo de Pagos - Condominios")
     parser.add_argument(
         "--demo",
@@ -21,42 +22,64 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    app = None
+    try:
+        log.info("Iniciando Condo Pagos (modo=%s)", "demo" if args.demo else "real")
+        QApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+        )
 
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
+        app = QApplication(sys.argv)
+        app.setApplicationName("Condo Pagos")
+        app.setStyle("Fusion")
 
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    app.setStyleSheet(generar_qss())
+        # Imports diferidos para que sus errores también queden registrados.
+        from condo_pagos.ui.composition import crear_ventana
+        from condo_pagos.ui.services.configuracion import ConfiguracionLocal
+        from condo_pagos.ui.theme.theme import generar_qss
 
-    # Los contenedores se importan de forma diferida para mantener el arranque
-    # de la UI desacoplado de la infraestructura hasta seleccionar el modo.
-    if args.demo:
-        from condo_pagos.infrastructure.memory_container import InMemoryContainer
+        app.setStyleSheet(generar_qss())
 
-        container = InMemoryContainer()
-    else:
-        from condo_pagos.infrastructure.container import Settings, build_container
+        if args.demo:
+            log.info("Cargando contenedor en memoria")
+            from condo_pagos.infrastructure.memory_container import InMemoryContainer
 
-        container = build_container(Settings())
+            container = InMemoryContainer()
+        else:
+            log.info("Cargando contenedor de PostgreSQL")
+            from condo_pagos.infrastructure.container import Settings, build_container
 
-    config = ConfiguracionLocal()
-    window = crear_ventana(container, config)
-    window.show()
+            container = build_container(Settings())
 
-    exit_code = app.exec()
+        log.info("Construyendo ventana principal")
+        config = ConfiguracionLocal()
+        window = crear_ventana(container, config)
+        window.show()
+        log.info("Ventana principal mostrada; iniciando ciclo de eventos")
 
-    pool = QThreadPool.globalInstance()
-    if pool.activeThreadCount() > 0:
-        log.info("Esperando tareas asíncronas pendientes...")
-        pool.waitForDone(3000)
+        exit_code = app.exec()
+        log.info("Ciclo de eventos finalizado con código %s", exit_code)
 
-    sys.exit(exit_code)
+        pool = QThreadPool.globalInstance()
+        if pool.activeThreadCount() > 0:
+            log.info("Esperando tareas asíncronas pendientes")
+            pool.waitForDone(3000)
+
+        log.info("Cierre de Condo Pagos")
+        raise SystemExit(exit_code)
+
+    except SystemExit:
+        raise
+    except Exception:
+        log.exception("Error fatal durante el inicio o ejecución de Condo Pagos")
+        if app is not None:
+            QMessageBox.critical(
+                None,
+                "Error de Condo Pagos",
+                "La aplicación encontró un error y no pudo continuar.\n\n"
+                f"Se guardó el detalle técnico en:\n{log_path.resolve()}",
+            )
+        raise
 
 
 if __name__ == "__main__":
