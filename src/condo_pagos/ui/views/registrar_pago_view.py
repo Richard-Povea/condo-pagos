@@ -211,13 +211,18 @@ class RegistrarPagoView(QWidget):
         self._vm.registrar_pago(operador="Demo")
 
     def _pago_registrado(self, folio: str) -> None:
-        QMessageBox.information(
-            self, "Pago registrado", f"El pago se registró correctamente. Folio: {folio}"
-        )
-        self._vm.buscar_unidades("")
+        # Actualizar el saldo de la unidad seleccionada después de guardar el pago.
+        unidad = self._vm.unidad_seleccionada
         self.input_monto.clear()
         self.txt_referencia.clear()
         self.btn_registrar.setEnabled(False)
+        if unidad is not None:
+            self.lbl_deuda_total.setText("Deuda total: actualizando…")
+            self._vm.seleccionar_unidad(unidad)
+        self._vm.buscar_unidades("")
+        QMessageBox.information(
+            self, "Pago registrado", f"El pago se registró correctamente. Folio: {folio}"
+        )
 
     def _mostrar_error(self, mensaje: str) -> None:
         QMessageBox.critical(self, "Error", mensaje)
