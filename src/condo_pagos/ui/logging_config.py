@@ -4,6 +4,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import sys
+from types import TracebackType
 
 
 def configurar_logging() -> Path:
@@ -38,7 +39,11 @@ def configurar_logging() -> Path:
         consola._condo_pagos_handler = True  # type: ignore[attr-defined]
         root.addHandler(consola)
 
-    def manejar_excepcion(tipo, valor, traceback) -> None:
+    def manejar_excepcion(
+        tipo: type[BaseException],
+        valor: BaseException,
+        traceback: TracebackType | None,
+    ) -> None:
         if issubclass(tipo, KeyboardInterrupt):
             sys.__excepthook__(tipo, valor, traceback)
             return
