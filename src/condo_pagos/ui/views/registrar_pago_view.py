@@ -100,7 +100,27 @@ class RegistrarPagoView(QWidget):
         # Conexiones con el ViewModel
         self._vm.ocupado_cambio.connect(self._manejar_ocupado)
         self._vm.error.connect(lambda msg: self.lbl_detalle_unidad.setText(f"Error: {msg}"))
+        self._vm.estado_cuenta_cargado.connect(self._mostrar_estado_cuenta)
 
     def _manejar_ocupado(self, ocupado: bool) -> None:
         # Bloquea el formulario durante operaciones asíncronas para evitar doble envío
         self.setEnabled(not ocupado)
+    def al_mostrar(self, parametros=None) -> None:
+        """Recibe la unidad enviada por ServicioNavegacion y la preselecciona."""
+        if parametros is None:
+            return
+        self._vm.seleccionar_unidad(parametros)
+        identificador = getattr(parametros, "identificador", "—")
+        responsable = getattr(parametros, "responsable", "")
+        self.lbl_detalle_unidad.setText(
+            f"Unidad {identificador}" + (f" — {responsable}" if responsable else "")
+        )
+        self.lbl_deuda_total.setText("Deuda total: consultando…")
+        self.btn_registrar.setEnabled(False)
+
+    def _mostrar_estado_cuenta(self, estado) -> None:
+        if estado is None:
+            self.lbl_deuda_total.setText("Deuda total: $ 0")
+            return
+        deuda = getattr(estado, "total_adeudado", getattr(estado, "saldo_total", 0))
+        self.lbl_deuda_total.setText(f"Deuda total: $ {deuda:,.0f}")
