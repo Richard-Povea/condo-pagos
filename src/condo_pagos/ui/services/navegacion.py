@@ -1,10 +1,9 @@
 # src/condo_pagos/ui/services/navegacion.py
-from collections.abc import Callable
+from typing import Any
+from PySide6.QtCore import QObject, Signal
 
+class ServicioNavegacion(QObject):
+    navegar = Signal(str, object)  # (clave_pagina, parametros)
 
-class ServicioNavegacion:
-    def __init__(self, callback_ir: Callable[[str, dict | None], None]) -> None:
-        self._callback_ir = callback_ir
-
-    def ir_a(self, ruta: str, params: dict | None = None) -> None:
-        self._callback_ir(ruta, params)
+    def ir_a(self, clave: str, parametros: Any | None = None) -> None:
+        self.navegar.emit(clave, parametros)
