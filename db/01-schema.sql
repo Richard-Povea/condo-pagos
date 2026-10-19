@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
     metodo_pago VARCHAR(50) NOT NULL,
     referencia VARCHAR(100) NOT NULL CONSTRAINT uq_pagos_referencia UNIQUE,
     residente_nombre VARCHAR(255) NOT NULL,
-    fecha TIMESTAMPTZ NOT NULL,
+    fecha DATE NOT NULL,
     folio VARCHAR(20) NOT NULL,
     exceso NUMERIC(12, 0) NOT NULL DEFAULT 0,
     estado gc.estado_pago_enum NOT NULL DEFAULT 'VIGENTE'
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS gc.folios_secuencia (
 
 CREATE TABLE IF NOT EXISTS gc.comprobantes (
     folio VARCHAR(20) PRIMARY KEY,
-    fecha_emision TIMESTAMPTZ NOT NULL,
+    fecha_emision DATE NOT NULL,
     unidad_id UUID NOT NULL,
     residente_nombre VARCHAR(255) NOT NULL,
     monto_pagado NUMERIC(12, 0) NOT NULL,
