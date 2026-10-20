@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -161,7 +161,7 @@ class PostgresContainer:
             unidad_id=unidad_uuid,
             monto=Decimal(str(monto)),
             metodo_pago=metodo_pago,
-            referencia=referencia or f"MANUAL-{unidad_uuid}-{(fecha or date.today()).isoformat()}",
+            referencia=referencia or f"MANUAL-{unidad_uuid}-{uuid4().hex}",
             residente_nombre=operador or "Operador",
             fecha_pago=fecha or date.today(),
         )
@@ -256,7 +256,10 @@ class PostgresContainer:
                            c.monto_pagado, c.metodo_pago, u.codigo
                     FROM comprobantes c JOIN unidades u ON u.id=c.unidad_id
                     WHERE c.folio = :folio
-                """), {"folio": comprobante_id},
+                       OR c.folio = (
+                           SELECT p.folio FROM pagos p WHERE p.id::text = :identificador
+                       )
+                """), {"folio": comprobante_id, "identificador": comprobante_id},
             ).fetchone()
         if row is None:
             raise ValueError(f"No existe el comprobante {comprobante_id}")
