@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -19,8 +20,6 @@ class PagosView(QWidget):
         self._vm = vm
         self._inicializar_ui()
         self._conectar_signals()
-
-        # Carga inicial
         self._vm.cargar_pagos()
 
     def _inicializar_ui(self) -> None:
@@ -52,7 +51,6 @@ class PagosView(QWidget):
         self.btn_reimprimir = QPushButton("Abrir / Reimprimir Comprobante")
         self.btn_anular = QPushButton("Anular pago seleccionado")
         self.btn_anular.setProperty("variant", "danger")
-
         layout_acciones.addWidget(self.btn_reimprimir)
         layout_acciones.addWidget(self.btn_anular)
         layout_acciones.addStretch()
@@ -60,40 +58,93 @@ class PagosView(QWidget):
 
     def _conectar_signals(self) -> None:
         self._vm.pagos_cargados.connect(self._actualizar_tabla)
+        self._vm.pago_anulado.connect(self._confirmar_anulacion_completada)
+        self._vm.error.connect(self._mostrar_error)
         self.txt_buscar.textChanged.connect(self._filtrar_texto)
         self.btn_reimprimir.clicked.connect(self._abrir_comprobante_seleccionado)
+        self.btn_anular.clicked.connect(self._anular_pago_seleccionado)
 
     def _actualizar_tabla(self, pagos: list, total_paginas: int) -> None:
-        modelo = PagosTableModel(pagos)
-        self.tabla_pagos.setModel(modelo)
+        self.tabla_pagos.setModel(PagosTableModel(pagos))
 
     def _filtrar_texto(self, texto: str) -> None:
         self._vm.filtro_texto = texto
         self._vm.pagina_actual = 1
         self._vm.cargar_pagos()
 
-    def _abrir_comprobante_seleccionado(self) -> None:
-        indice = self.tabla_pagos.selectionModel().currentIndex()
+    def _pago_seleccionado(self):
+        selection = self.tabla_pagos.selectionModel()
+        if selection is None:
+            return None
+        indice = selection.currentIndex()
         if not indice.isValid():
+            return None
+        pagos = getattr(self.tabla_pagos.model(), "_pagos_raw", [])
+        if indice.row() >= len(pagos):
+            return None
+        return pagos[indice.row()]
+
+    def _abrir_comprobante_seleccionado(self) -> None:
+        pago = self._pago_seleccionado()
+        if pago is None:
             QMessageBox.information(
-                self,
-                "Seleccionar pago",
+                self, "Seleccionar pago",
                 "Selecciona un pago de la tabla para abrir su comprobante.",
             )
             return
-
-        modelo = self.tabla_pagos.model()
-        pagos = getattr(modelo, "_pagos_raw", [])
-        if indice.row() >= len(pagos):
-            QMessageBox.warning(
-                self,
-                "Comprobante no disponible",
-                "No se pudo identificar el pago seleccionado.",
-            )
-            return
-
-        pago = pagos[indice.row()]
         self._vm.abrir_o_reimprimir_comprobante(
             comprobante_id=str(pago.folio),
             ruta_actual_disco=None,
         )
+
+    def _anular_pago_seleccionado(self) -> None:
+        pago = self._pago_seleccionado()
+        if pago is None:
+            QMessageBox.information(
+                self, "Seleccionar pago",
+                "Selecciona un pago de la tabla para anularlo.",
+            )
+            return
+        if str(pago.estado).lower() == "anulado":
+            QMessageBox.information(
+                self, "Pago ya anulado", "El pago seleccionado ya está anulado."
+            )
+            return
+
+        motivo, aceptado = QInputDialog.getMultiLineText(
+            self,
+            "Motivo de anulación",
+            f"Indica el motivo para anular el pago {pago.folio} (mínimo 10 caracteres):",
+        )
+        if not aceptado:
+            return
+        if len(motivo.strip()) < 10:
+            QMessageBox.warning(
+                self, "Motivo insuficiente",
+                "El motivo debe tener al menos 10 caracteres.",
+            )
+            return
+
+        confirmar = QMessageBox.question(
+            self,
+            "Confirmar anulación",
+            f"¿Confirmas anular el pago {pago.folio}? Esta acción restaurará los saldos asociados.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirmar != QMessageBox.StandardButton.Yes:
+            return
+
+        self._vm.anular_pago(
+            pago_id=str(pago.pago_id),
+            motivo=motivo.strip(),
+            operador="Operador",
+        )
+
+    def _confirmar_anulacion_completada(self, folio: str) -> None:
+        QMessageBox.information(
+            self, "Pago anulado", f"El pago {folio} fue anulado correctamente."
+        )
+
+    def _mostrar_error(self, mensaje: str) -> None:
+        QMessageBox.critical(self, "Error en pagos", mensaje)
