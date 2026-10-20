@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -13,7 +14,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from condo_pagos.config import Settings
+from condo_pagos.domain.comprobante import ComprobanteData
 from condo_pagos.domain.errors import DominioError
+from condo_pagos.infrastructure.pdf_generator.reportlab_renderer import ReportLabPdfRenderer
 from condo_pagos.infrastructure.database.bootstrap import ESQUEMA_VERSION_ESPERADA
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
@@ -246,38 +249,33 @@ class PostgresContainer:
         return folio
 
     def emitir_pdf(self, comprobante_id: str) -> str:
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-
+        """Genera el PDF usando el renderer oficial y el snapshot guardado."""
         with self._session_factory() as session:
             row = session.execute(
                 text("""
-                    SELECT c.folio, c.fecha_emision, c.residente_nombre,
-                           c.monto_pagado, c.metodo_pago, u.codigo
-                    FROM comprobantes c JOIN unidades u ON u.id=c.unidad_id
+                    SELECT c.folio, c.datos_json
+                    FROM comprobantes c
                     WHERE c.folio = :folio
                        OR c.folio = (
                            SELECT p.folio FROM pagos p WHERE p.id::text = :identificador
                        )
-                """), {"folio": comprobante_id, "identificador": comprobante_id},
+                """),
+                {"folio": comprobante_id, "identificador": comprobante_id},
             ).fetchone()
         if row is None:
             raise ValueError(f"No existe el comprobante {comprobante_id}")
+
+        snapshot = ComprobanteData.desde_json(json.dumps(row.datos_json, ensure_ascii=False))
+        contenido_pdf = ReportLabPdfRenderer().renderizar(snapshot)
         self._pdf_dir.mkdir(parents=True, exist_ok=True)
         ruta = self._pdf_dir / f"comprobante_{row.folio}.pdf"
-        pdf = canvas.Canvas(str(ruta), pagesize=letter)
-        pdf.setTitle(f"Comprobante {row.folio}")
-        pdf.setFont("Helvetica-Bold", 16)
-        pdf.drawString(72, 730, "COMPROBANTE DE PAGO")
-        pdf.setFont("Helvetica", 11)
-        lineas = (
-            f"Folio: {row.folio}", f"Fecha: {row.fecha_emision:%d-%m-%Y}",
-            f"Unidad: {row.codigo}", f"Pagador: {row.residente_nombre}",
-            f"Monto: $ {row.monto_pagado:,.0f}", f"Método: {row.metodo_pago}",
-        )
-        for y, linea in zip((690, 666, 642, 618, 594, 570), lineas):
-            pdf.drawString(72, y, linea)
-        pdf.save()
+        ruta.write_bytes(contenido_pdf)
+
+        with self._session_factory.begin() as session:
+            session.execute(
+                text("UPDATE comprobantes SET pdf_ruta = :ruta WHERE folio = :folio"),
+                {"ruta": str(ruta), "folio": row.folio},
+            )
         return str(ruta)
 
 
