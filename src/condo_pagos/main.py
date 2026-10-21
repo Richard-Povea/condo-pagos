@@ -8,6 +8,7 @@ from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from condo_pagos.infrastructure.errors import ErrorDeInfraestructura, EsquemaIncompatible
+from condo_pagos.ui.ports import UiContainer
 from condo_pagos.ui.app import crear_aplicacion
 
 log = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def _crear_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _crear_container(modo_demo: bool):
+def _crear_container(modo_demo: bool) -> UiContainer:
     """Construye el contenedor elegido desde la raíz de composición."""
     if modo_demo:
         log.info("Cargando contenedor en memoria")
