@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Any
 
 from PySide6.QtCore import QObject, QThreadPool, Signal, Slot
 
@@ -12,13 +13,13 @@ class BaseViewModel(QObject):
     def __init__(self, pool: QThreadPool | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._pool = pool or QThreadPool.globalInstance()
-        self._pendientes: dict[str, tuple[Worker, Callable]] = {}
+        self._pendientes: dict[str, tuple[Worker, Callable[[object], None]]] = {}
 
     @property
     def ocupado(self) -> bool:
         return bool(self._pendientes)
 
-    def _ejecutar(self, fn, *args, on_ok: Callable) -> None:
+    def _ejecutar(self, fn: Callable[..., Any], *args: Any, on_ok: Callable[[object], None]) -> None:
         w = Worker(fn, *args)
         w.signals.ok.connect(self._cuando_ok)
         w.signals.fail.connect(self._cuando_fail)
