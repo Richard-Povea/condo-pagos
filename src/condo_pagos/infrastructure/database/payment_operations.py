@@ -9,7 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
