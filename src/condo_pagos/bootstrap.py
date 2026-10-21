@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import Any
+
 from sqlalchemy import text
 
 from condo_pagos.infrastructure.database.engine import engine
@@ -10,7 +13,7 @@ from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
 # Importa otros casos de uso según corresponda en tu proyecto
 
 class Container:
-    def __init__(self, uow_factory, pdf_renderer, storage):
+    def __init__(self, uow_factory: Callable[[], SqlAlchemyUnitOfWork], pdf_renderer: ReportLabPdfRenderer, storage: FileSystemStorage) -> None:
         self.uow_factory = uow_factory
         self.pdf_renderer = pdf_renderer
         self.storage = storage
