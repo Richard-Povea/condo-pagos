@@ -53,6 +53,7 @@ def test_registrar_pago_camino_feliz(py_fixture_uow):
         metodo_pago="TRANSFERENCIA",
         referencia="REF-12345",
         residente_nombre="María González",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
 
@@ -83,6 +84,7 @@ def test_registrar_pago_exceso_deuda_no_consume_folio(py_fixture_uow):
         metodo_pago="TRANSFERENCIA",
         referencia="REF-99999",
         residente_nombre="Pedro Picapiedra",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
 
@@ -107,6 +109,7 @@ def test_registrar_pago_rollback_por_fallo_externo(py_fixture_uow):
         metodo_pago="TRANSFERENCIA",
         referencia="REF-777",
         residente_nombre="Test Fallo",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
 
@@ -147,6 +150,7 @@ def test_registrar_pago_unidad_inactiva(py_fixture_uow):
         metodo_pago="EFECTIVO",
         referencia="REF-001",
         residente_nombre="Inactivo",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
 
@@ -168,6 +172,7 @@ def test_registrar_pago_unidad_sin_deuda(py_fixture_uow):
         metodo_pago="EFECTIVO",
         referencia="REF-002",
         residente_nombre="Sin Deuda",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
 
@@ -186,6 +191,7 @@ def test_registrar_pago_referencia_duplicada(py_fixture_uow):
         metodo_pago="TRANSFERENCIA",
         referencia="REF-DUP",
         residente_nombre="Duplicado",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
 
