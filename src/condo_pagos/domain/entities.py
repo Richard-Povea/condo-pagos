@@ -82,7 +82,7 @@ class Pago:
     unidad_id: UUID
     monto: Decimal
     metodo_pago: str
-    referencia: str
+    referencia: str | None
     residente_nombre: str
     fecha: date
     folio: str
