@@ -39,7 +39,7 @@ class PagosRepository(Protocol):
         ...
 
     @abstractmethod
-    def existe_por_referencia(self, referencia: str) -> bool:
+    def existe_por_referencia(self, referencia: str | None) -> bool:
         ...
 
     @abstractmethod
