@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -11,15 +12,20 @@ from typing import Callable
 from uuid import UUID, uuid4
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from condo_pagos.domain.comprobante import ComprobanteData
 from condo_pagos.domain.errors import DominioError
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
+from condo_pagos.infrastructure.errors import ErrorDeInfraestructura
 from condo_pagos.infrastructure.pdf_generator.reportlab_renderer import ReportLabPdfRenderer
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
 from condo_pagos.use_cases.dto import RegistrarPagoCmd
 from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
+
+
+log = logging.getLogger(__name__)
 
 
 class OperacionesPagoPostgres:
@@ -45,6 +51,10 @@ class OperacionesPagoPostgres:
         operador: str = "",
         fecha: date | None = None,
     ) -> SimpleNamespace:
+        if not operador or not operador.strip():
+            raise ValueError("Debe indicar el operador que registra el pago.")
+
+        referencia_limpia = referencia.strip() or None
         try:
             unidad_uuid = UUID(str(unidad_id))
         except ValueError as exc:
@@ -62,16 +72,33 @@ class OperacionesPagoPostgres:
             unidad_id=unidad_uuid,
             monto=Decimal(str(monto)),
             metodo_pago=metodo_pago,
-            referencia=referencia or f"MANUAL-{unidad_uuid}-{uuid4().hex}",
+            referencia=referencia_limpia,
             residente_nombre=operador or "Operador",
             fecha_pago=fecha or date.today(),
         )
-        resultado = RegistrarPagoUseCase(self._uow_factory()).ejecutar(cmd)
+        try:
+            resultado = RegistrarPagoUseCase(self._uow_factory()).ejecutar(cmd)
+        except SQLAlchemyError as exc:
+            raise ErrorDeInfraestructura() from exc
+
+        # El pago ya quedó confirmado: un error al generar el PDF no lo revierte.
+        pdf_ok = False
+        pdf_ruta: str | None = None
+        try:
+            pdf_ruta = self.emitir_pdf(resultado.folio)
+            pdf_ok = True
+        except Exception:
+            log.exception(
+                "El pago %s se registró, pero no se pudo generar el PDF.",
+                resultado.folio,
+            )
+
         return SimpleNamespace(
             folio=resultado.folio,
             pago_id=resultado.folio,
             monto_pagado=resultado.monto_pagado,
-            pdf_ruta=resultado.pdf_ruta,
+            pdf_ruta=pdf_ruta,
+            pdf_ok=pdf_ok,
         )
 
     def anular_pago(
@@ -97,7 +124,10 @@ class OperacionesPagoPostgres:
         if folio is None:
             raise ValueError(f"No se encontró el pago {pago_id}")
 
-        AnularPagoUseCase(self._uow_factory()).ejecutar(pago_uuid)
+        try:
+            AnularPagoUseCase(self._uow_factory()).ejecutar(pago_uuid)
+        except SQLAlchemyError as exc:
+            raise ErrorDeInfraestructura() from exc
         return str(folio)
 
     def emitir_pdf(self, comprobante_id: str) -> str:
