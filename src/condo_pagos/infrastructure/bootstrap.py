@@ -20,6 +20,7 @@ from condo_pagos.domain.comprobante import ComprobanteData
 from condo_pagos.domain.errors import DominioError
 from condo_pagos.infrastructure.pdf_generator.reportlab_renderer import ReportLabPdfRenderer
 from condo_pagos.infrastructure.database.schema import verificar_esquema
+from condo_pagos.infrastructure.database.queries import ConsultasPostgres
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
 from condo_pagos.use_cases.dto import RegistrarPagoCmd
@@ -51,6 +52,7 @@ class PostgresContainer:
         self._session_factory = sessionmaker(
             bind=self._engine, expire_on_commit=False, future=True
         )
+        self._consultas = ConsultasPostgres(self._session_factory)
         self._uow_factory = lambda: SqlAlchemyUnitOfWork(self._session_factory)
         self._pdf_dir = settings.pdf_dir
         verificar_esquema(self._engine)
@@ -83,75 +85,17 @@ class PostgresContainer:
             saldo_total=Decimal(str(row.saldo_total or 0)),
         )
 
-    def listar_unidades(self, solo_morosas: bool = False) -> list[SimpleNamespace]:
-        sql = """
-            SELECT u.id, u.codigo, u.condominio_nombre, u.activa,
-                   COALESCE(SUM(c.saldo), 0) AS saldo_total
-            FROM unidades u
-            LEFT JOIN cargos c ON c.unidad_id = u.id AND c.estado = 'PENDIENTE'
-            WHERE u.activa IS TRUE
-            GROUP BY u.id, u.codigo, u.condominio_nombre, u.activa
-        """
-        if solo_morosas:
-            sql += " HAVING COALESCE(SUM(c.saldo), 0) > 0"
-        sql += " ORDER BY u.codigo"
-        with self._session_factory() as session:
-            rows = session.execute(text(sql)).fetchall()
-        return [self._unidad(row) for row in rows]
+    def listar_unidades(self, solo_morosas: bool = False):
+        """Lista unidades y saldos delegando la lectura al adaptador de consultas."""
+        return self._consultas.listar_unidades(solo_morosas=solo_morosas)
 
-    def buscar_unidades(self, texto: str = "") -> list[SimpleNamespace]:
-        criterio = texto.strip()
-        with self._session_factory() as session:
-            rows = session.execute(
-                text("""
-                    SELECT u.id, u.codigo, u.condominio_nombre, u.activa,
-                           COALESCE(SUM(c.saldo), 0) AS saldo_total
-                    FROM unidades u
-                    LEFT JOIN cargos c ON c.unidad_id = u.id AND c.estado = 'PENDIENTE'
-                    WHERE u.activa IS TRUE
-                      AND (:criterio = '' OR u.codigo ILIKE :patron
-                           OR u.condominio_nombre ILIKE :patron)
-                    GROUP BY u.id, u.codigo, u.condominio_nombre, u.activa
-                    ORDER BY u.codigo
-                """),
-                {"criterio": criterio, "patron": f"%{criterio}%"},
-            ).fetchall()
-        return [self._unidad(row) for row in rows]
+    def buscar_unidades(self, texto: str = ""):
+        """Busca unidades delegando la lectura al adaptador de consultas."""
+        return self._consultas.buscar_unidades(texto)
 
-    def consultar_estado_cuenta(self, unidad_id: UUID | str) -> SimpleNamespace:
-        try:
-            identificador = UUID(str(unidad_id))
-        except ValueError as exc:
-            raise ValueError(f"Identificador de unidad inválido: {unidad_id}") from exc
-        with self._session_factory() as session:
-            unidad = session.execute(
-                text("""
-                    SELECT id, codigo, condominio_nombre, activa
-                    FROM unidades WHERE id = :id
-                """), {"id": identificador}
-            ).fetchone()
-            if unidad is None:
-                raise ValueError(f"No existe la unidad {unidad_id}")
-            cargos = session.execute(
-                text("""
-                    SELECT id, periodo, monto_original, saldo, vencimiento
-                    FROM cargos WHERE unidad_id = :id AND saldo > 0
-                      AND estado = 'PENDIENTE'
-                    ORDER BY vencimiento, periodo
-                """), {"id": identificador}
-            ).fetchall()
-            pagos = session.execute(
-                text("""
-                    SELECT id, folio, fecha, monto, metodo_pago, estado
-                    FROM pagos WHERE unidad_id = :id
-                    ORDER BY fecha DESC LIMIT 10
-                """), {"id": identificador}
-            ).fetchall()
-        total = sum((Decimal(str(c.saldo)) for c in cargos), Decimal("0"))
-        return SimpleNamespace(
-            unidad_id=identificador, codigo_unidad=unidad.codigo,
-            total_adeudado=total, cargos_pendientes=cargos, pagos_recientes=pagos,
-        )
+    def consultar_estado_cuenta(self, unidad_id: UUID | str):
+        """Consulta el estado de cuenta tipado de una unidad."""
+        return self._consultas.consultar_estado_cuenta(unidad_id)
 
     def registrar_pago(
         self, *, unidad_id: UUID | str, monto: Decimal | int | str,
@@ -185,54 +129,10 @@ class PostgresContainer:
 
     def listar_pagos(
         self, *, filtros: dict | None = None, pagina: int = 1, limite: int = 50,
-    ) -> SimpleNamespace:
-        filtros = filtros or {}
-        condiciones = [
-            "(:texto = '' OR p.folio ILIKE :patron OR u.codigo ILIKE :patron "
-            "OR p.residente_nombre ILIKE :patron)"
-        ]
-        texto_filtro = str(filtros.get("texto") or "").strip()
-        params = {
-            "texto": texto_filtro, "patron": f"%{texto_filtro}%",
-            "limite": max(1, limite), "offset": max(0, pagina - 1) * max(1, limite),
-        }
-        for key, column in (("metodo", "p.metodo_pago"), ("estado", "p.estado")):
-            value = str(filtros.get(key) or "").strip()
-            if value:
-                condiciones.append(f"{column}::text ILIKE :{key}")
-                params[key] = f"%{value}%"
-        for key, op in (("fecha_desde", ">="), ("fecha_hasta", "<=")):
-            value = filtros.get(key)
-            if value:
-                condiciones.append(f"p.fecha {op} :{key}")
-                params[key] = value
-        where = " AND ".join(condiciones)
-        with self._session_factory() as session:
-            total = session.execute(
-                text(
-                    f"SELECT count(*) FROM pagos p JOIN unidades u ON u.id=p.unidad_id "
-                    f"WHERE {where}"
-                ), params,
-            ).scalar_one()
-            rows = session.execute(
-                text(f"""
-                    SELECT p.id, p.folio, p.fecha, u.codigo AS unidad,
-                           p.residente_nombre AS pagador, p.monto,
-                           p.metodo_pago AS metodo, p.estado::text AS estado,
-                           p.referencia
-                    FROM pagos p JOIN unidades u ON u.id=p.unidad_id
-                    WHERE {where}
-                    ORDER BY p.fecha DESC, p.folio DESC
-                    LIMIT :limite OFFSET :offset
-                """), params,
-            ).fetchall()
-        return SimpleNamespace(
-            filas=[SimpleNamespace(
-                pago_id=row.id, folio=row.folio, fecha=row.fecha, unidad=row.unidad,
-                pagador=row.pagador, monto=Decimal(str(row.monto)), metodo=row.metodo,
-                estado=row.estado, referencia=row.referencia,
-            ) for row in rows],
-            total_paginas=(total + limite - 1) // limite if total else 0,
+    ):
+        """Lista pagos con filtros y paginación desde el adaptador de consultas."""
+        return self._consultas.listar_pagos(
+            filtros=filtros, pagina=pagina, limite=limite
         )
 
     def anular_pago(
