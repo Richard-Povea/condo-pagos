@@ -77,6 +77,7 @@ class OperacionesPagoPostgres:
     def anular_pago(
         self, *, pago_id: str, motivo: str = "", operador: str = ""
     ) -> str:
+        pago_uuid: UUID | None
         try:
             pago_uuid = UUID(str(pago_id))
         except ValueError:
@@ -97,7 +98,7 @@ class OperacionesPagoPostgres:
             raise ValueError(f"No se encontró el pago {pago_id}")
 
         AnularPagoUseCase(self._uow_factory()).ejecutar(pago_uuid)
-        return folio
+        return str(folio)
 
     def emitir_pdf(self, comprobante_id: str) -> str:
         """Regenera el PDF desde el snapshot inmutable guardado en la base."""
