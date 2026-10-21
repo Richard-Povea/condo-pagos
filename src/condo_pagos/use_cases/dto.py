@@ -74,6 +74,8 @@ class UnidadConsultaDTO:
     condominio_nombre: str
     activa: bool
     saldo_total: Decimal
+    responsable: str = ""
+    rut: str = ""
 
     @property
     def id(self) -> UUID:
@@ -105,5 +107,5 @@ class PagoListadoDTO:
 class ResultadoPagosDTO:
     """Página de resultados del historial y total de páginas disponibles."""
 
-    filas: tuple[PagoListadoDTO, ...]
+    filas: list[PagoListadoDTO]
     total_paginas: int
