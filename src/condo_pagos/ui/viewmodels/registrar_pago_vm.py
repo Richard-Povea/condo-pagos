@@ -56,7 +56,7 @@ class RegistrarPagoViewModel(BaseViewModel):
             self.estado_cuenta_cargado.emit(None)
             return
 
-        def tarea():
+        def tarea() -> Any:
             return self._consultar_estado_uc(unidad.unidad_id)
 
         self._ejecutar(tarea, on_ok=lambda estado: self.estado_cuenta_cargado.emit(estado))
