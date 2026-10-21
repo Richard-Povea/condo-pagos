@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Any
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
@@ -16,10 +17,10 @@ from condo_pagos.ui.components.base import CampoMonto, Tarjeta
 
 
 class RegistrarPagoView(QWidget):
-    def __init__(self, vm, parent=None) -> None:
+    def __init__(self, vm: Any, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._vm = vm
-        self._unidades_encontradas = []
+        self._unidades_encontradas: list[Any] = []
         self._deuda_total = Decimal("0")
         self._inicializar_ui()
         self._conectar_signals()
@@ -91,7 +92,7 @@ class RegistrarPagoView(QWidget):
         layout_principal.addStretch()
 
     @staticmethod
-    def _widget_con_layout(layout) -> QWidget:
+    def _widget_con_layout(layout: Any) -> QWidget:
         widget = QWidget()
         widget.setLayout(layout)
         return widget
@@ -119,7 +120,7 @@ class RegistrarPagoView(QWidget):
         self._vm.estado_cuenta_cargado.connect(self._mostrar_estado_cuenta)
         self._vm.pago_registrado.connect(self._pago_registrado)
 
-    def al_mostrar(self, parametros=None) -> None:
+    def al_mostrar(self, parametros: Any | None = None) -> None:
         if parametros is not None:
             self._vm.seleccionar_unidad(parametros)
             self.lbl_detalle_unidad.setText(
@@ -131,7 +132,7 @@ class RegistrarPagoView(QWidget):
         else:
             self._vm.buscar_unidades("")
 
-    def _mostrar_resultados(self, unidades: list) -> None:
+    def _mostrar_resultados(self, unidades: list[Any]) -> None:
         self._unidades_encontradas = list(unidades)
         seleccion_id = getattr(self._vm.unidad_seleccionada, "unidad_id", None)
         self.combo_unidades.blockSignals(True)
@@ -156,7 +157,7 @@ class RegistrarPagoView(QWidget):
                 f"Unidad {unidad.identificador} — {unidad.responsable}"
             )
 
-    def _mostrar_estado_cuenta(self, estado) -> None:
+    def _mostrar_estado_cuenta(self, estado: Any | None) -> None:
         if estado is None:
             self._deuda_total = Decimal("0")
             self.lbl_deuda_total.setText("Deuda total: $ 0")
