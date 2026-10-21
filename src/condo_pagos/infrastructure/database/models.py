@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text, text
 from sqlalchemy import Enum as PgEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
@@ -70,6 +70,17 @@ class PagoModel(Base):
         PgEnum(EstadoPago, name="estado_pago_enum", create_type=False),
         nullable=False,
         default=EstadoPago.VIGENTE
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_pagos_referencia",
+            "unidad_id",
+            "metodo_pago",
+            "referencia",
+            unique=True,
+            postgresql_where=text("referencia IS NOT NULL AND estado = 'VIGENTE'"),
+        ),
     )
 
 
