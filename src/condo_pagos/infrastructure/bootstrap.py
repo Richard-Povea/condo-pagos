@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import date
+from decimal import Decimal
+from typing import Any
+from uuid import UUID
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -68,7 +72,6 @@ class PostgresContainer:
                 self._pdf_dir,
             )
 
-
     def listar_unidades(self, solo_morosas: bool = False) -> list[UnidadConsultaDTO]:
         """Lista unidades y saldos delegando la lectura al adaptador de consultas."""
         return self._consultas.listar_unidades(solo_morosas=solo_morosas)
@@ -81,23 +84,41 @@ class PostgresContainer:
         """Consulta el estado de cuenta tipado de una unidad."""
         return self._consultas.consultar_estado_cuenta(unidad_id)
 
-    def registrar_pago(self, **kwargs):
+    def registrar_pago(
+        self,
+        *,
+        unidad_id: UUID | str,
+        monto: Decimal | int | str,
+        metodo_pago: str = "EFECTIVO",
+        referencia: str = "",
+        operador: str = "",
+        fecha: date | None = None,
+    ) -> Any:
         """Registra un pago mediante el adaptador de operaciones."""
-        return self._operaciones_pago.registrar_pago(**kwargs)
-
+        return self._operaciones_pago.registrar_pago(
+            unidad_id=unidad_id,
+            monto=monto,
+            metodo_pago=metodo_pago,
+            referencia=referencia,
+            operador=operador,
+            fecha=fecha,
+        )
 
     def listar_pagos(
-        self, *, filtros: dict | None = None, pagina: int = 1, limite: int = 50,
+        self, *, filtros: dict[str, Any] | None = None, pagina: int = 1, limite: int = 50,
     ) -> ResultadoPagosDTO:
         """Lista pagos con filtros y paginación desde el adaptador de consultas."""
         return self._consultas.listar_pagos(
             filtros=filtros, pagina=pagina, limite=limite
         )
 
-    def anular_pago(self, **kwargs) -> str:
+    def anular_pago(
+        self, *, pago_id: str, motivo: str = "", operador: str = ""
+    ) -> str:
         """Anula un pago mediante el adaptador de operaciones."""
-        return self._operaciones_pago.anular_pago(**kwargs)
-
+        return self._operaciones_pago.anular_pago(
+            pago_id=pago_id, motivo=motivo, operador=operador
+        )
 
     def emitir_pdf(self, comprobante_id: str) -> str:
         """Genera el comprobante desde el snapshot persistido."""
