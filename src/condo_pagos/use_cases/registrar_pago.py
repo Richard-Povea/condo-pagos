@@ -22,7 +22,7 @@ class RegistrarPagoUseCase:
                 raise DominioError(f"La unidad {unidad.codigo} se encuentra inactiva.")
 
             # 2. Validar referencia de pago duplicada
-            if self.uow.pagos.existe_por_referencia(cmd.referencia):
+            if cmd.referencia and self.uow.pagos.existe_por_referencia(cmd.referencia):
                 raise DominioError(
                     f"Ya existe un pago registrado con la referencia '{cmd.referencia}'."
                     )
