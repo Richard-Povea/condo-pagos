@@ -7,6 +7,8 @@ import sys
 from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+from condo_pagos.infrastructure.errors import ErrorDeInfraestructura, EsquemaIncompatible
+
 from condo_pagos.ui.app import crear_aplicacion
 
 log = logging.getLogger(__name__)
@@ -60,7 +62,13 @@ def main(argv: list[str] | None = None) -> int:
         from condo_pagos.ui.composition import crear_ventana
         from condo_pagos.ui.services.configuracion import ConfiguracionLocal
 
-        container = _crear_container(args.demo)
+        try:
+            container = _crear_container(args.demo)
+        except (ErrorDeInfraestructura, EsquemaIncompatible) as exc:
+            log.error("No se pudo preparar la infraestructura: %s", exc)
+            QMessageBox.critical(None, "Condo Pagos", str(exc))
+            return 2
+
         config = ConfiguracionLocal()
         log.info("Construyendo ventana principal")
         window = crear_ventana(container, config)
