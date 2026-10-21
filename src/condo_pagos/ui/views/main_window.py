@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
         
         # Cumple con el contrato Pagina si la vista implementa al_mostrar
         if hasattr(w, "al_mostrar"):
-            w.al_mostrar(parametros) # type: ignore
+            w.al_mostrar(parametros)
 
     def closeEvent(self, e: QCloseEvent) -> None:
         if self._hay_ops():
