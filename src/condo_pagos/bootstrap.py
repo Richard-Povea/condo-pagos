@@ -1,6 +1,4 @@
 from collections.abc import Callable
-from typing import Any
-
 from sqlalchemy import text
 
 from condo_pagos.infrastructure.database.engine import engine
