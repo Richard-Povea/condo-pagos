@@ -164,10 +164,10 @@ class ConsultasPostgres:
                 condiciones.append(f"{column}::text ILIKE :{key}")
                 params[key] = f"%{value}%"
         for key, operator in (("fecha_desde", ">="), ("fecha_hasta", "<=")):
-            value = filtros.get(key)
-            if value:
+            fecha_value = filtros.get(key)
+            if fecha_value:
                 condiciones.append(f"p.fecha {operator} :{key}")
-                params[key] = value
+                params[key] = fecha_value
 
         where = " AND ".join(condiciones)
         with self._session_factory() as session:
