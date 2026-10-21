@@ -1,3 +1,5 @@
+from typing import Any
+
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
@@ -15,7 +17,7 @@ from condo_pagos.ui.components.tabla_pagos import PagosTableModel
 
 
 class PagosView(QWidget):
-    def __init__(self, vm, parent=None) -> None:
+    def __init__(self, vm: Any, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._vm = vm
         self._inicializar_ui()
@@ -64,7 +66,7 @@ class PagosView(QWidget):
         self.btn_reimprimir.clicked.connect(self._abrir_comprobante_seleccionado)
         self.btn_anular.clicked.connect(self._anular_pago_seleccionado)
 
-    def _actualizar_tabla(self, pagos: list, total_paginas: int) -> None:
+    def _actualizar_tabla(self, pagos: list[Any], total_paginas: int) -> None:
         self.tabla_pagos.setModel(PagosTableModel(pagos))
 
     def _filtrar_texto(self, texto: str) -> None:
@@ -72,7 +74,7 @@ class PagosView(QWidget):
         self._vm.pagina_actual = 1
         self._vm.cargar_pagos()
 
-    def _pago_seleccionado(self):
+    def _pago_seleccionado(self) -> Any | None:
         selection = self.tabla_pagos.selectionModel()
         if selection is None:
             return None
