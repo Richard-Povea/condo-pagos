@@ -25,6 +25,8 @@ dev = [
     "pypdf>=4",
     "ruff",
     "mypy",
+    "types-qrcode",
+    "types-reportlab",
     "import-linter>=2",
     "alembic>=1.13",
     "pytest-repeat>=0.9.4",
