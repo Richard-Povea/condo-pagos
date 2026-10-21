@@ -43,7 +43,19 @@ class PagosPort(Protocol):
     ) -> str: ...
 
 
-class UiContainer(UnidadesPort, RegistrarPagoPort, PagosPort, Protocol):
+class ConsultasPort(Protocol):
+    """Consultas de lectura compartidas por las pantallas de la aplicación."""
+
+    def listar_unidades(self, solo_morosas: bool = False) -> list[Any]: ...
+    def buscar_unidades(self, texto: str = "") -> list[Any]: ...
+    def consultar_estado_cuenta(self, unidad_id: UUID | str) -> Any: ...
+    def listar_pagos(
+        self, *, filtros: dict[str, Any] | None = None,
+        pagina: int = 1, limite: int = 50,
+    ) -> Any: ...
+
+
+class UiContainer(ConsultasPort, RegistrarPagoPort, PagosPort, Protocol):
     """Contrato agregado que deben satisfacer los contenedores demo y real."""
 
     nombre_condominio: str
