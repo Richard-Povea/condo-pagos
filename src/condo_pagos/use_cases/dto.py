@@ -22,6 +22,7 @@ class RegistrarPagoCmd:
     metodo_pago: str  # Ej: "TRANSFERENCIA", "EFECTIVO", "WEBPAY"
     referencia: str | None
     residente_nombre: str
+    registrado_por: str
     fecha_pago: date
 
 
