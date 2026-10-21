@@ -157,7 +157,9 @@ class SqlAlchemyPagosRepository(PagosRepository):
             estado=EstadoPago(model.estado),
         )
     
-    def existe_por_referencia(self, referencia: str) -> bool:
+    def existe_por_referencia(self, referencia: str | None) -> bool:
+        if referencia is None:
+            return False
         stmt = text(
             "SELECT 1 FROM pagos WHERE referencia = :referencia AND estado = 'VIGENTE'"
         )
