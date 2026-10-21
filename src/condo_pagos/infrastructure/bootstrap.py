@@ -253,8 +253,9 @@ class PostgresContainer:
         with self._session_factory() as session:
             row = session.execute(
                 text("""
-                    SELECT c.folio, c.datos_json
+                    SELECT c.folio, c.datos_json, u.codigo AS unidad_codigo
                     FROM comprobantes c
+                    JOIN unidades u ON u.id = c.unidad_id
                     WHERE c.folio = :folio
                        OR c.folio = (
                            SELECT p.folio FROM pagos p WHERE p.id::text = :identificador
@@ -271,7 +272,9 @@ class PostgresContainer:
             else json.dumps(row.datos_json, ensure_ascii=False)
         )
         snapshot = ComprobanteData.desde_json(datos_json)
-        contenido_pdf = ReportLabPdfRenderer().renderizar(snapshot)
+        contenido_pdf = ReportLabPdfRenderer().renderizar(
+            snapshot, unidad_codigo=row.unidad_codigo
+        )
         self._pdf_dir.mkdir(parents=True, exist_ok=True)
         ruta = self._pdf_dir / f"comprobante_{row.folio}.pdf"
         ruta.write_bytes(contenido_pdf)
