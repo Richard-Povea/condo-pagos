@@ -22,7 +22,9 @@ class ReportLabPdfRenderer:
     """Implementación de PdfRenderer usando ReportLab. 
     Trabaja estrictamente con el snapshot (ComprobanteData) sin consultas a BD."""
 
-    def renderizar(self, comprobante: ComprobanteData) -> bytes:
+    def renderizar(
+        self, comprobante: ComprobanteData, *, unidad_codigo: str | None = None
+    ) -> bytes:
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -94,7 +96,9 @@ class ReportLabPdfRenderer:
         datos_generales_data = [
             [
                 Paragraph(f"<b>Fecha de Emisión:</b> {fecha_emision}", body_style),
-                Paragraph(f"<b>Unidad:</b> {comprobante.unidad_id}", body_style),
+                Paragraph(
+                    f"<b>Unidad:</b> {unidad_codigo or comprobante.unidad_id}", body_style
+                ),
             ],
             [
                 Paragraph(f"<b>Pagador:</b> {comprobante.residente_nombre}", body_style),
@@ -125,7 +129,7 @@ class ReportLabPdfRenderer:
         # Iterar sobre las asignaciones del snapshot
         for item in comprobante.lineas:
             detalles_data.append([
-                Paragraph(f"Cargo ID: {item.cargo_id}", body_style),
+                Paragraph(f"Período: {item.periodo}", body_style),
                 Paragraph(f"${item.monto_aplicado:,.2f}", body_style),
             ])
 
