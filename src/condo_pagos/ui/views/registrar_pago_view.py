@@ -177,7 +177,7 @@ class RegistrarPagoView(QWidget):
         # El contenedor demo no modela cargos individuales; se ofrece el saldo total.
         self._pagar_todo()
 
-    def _validar_monto(self, *_args) -> None:
+    def _validar_monto(self, *_args: Any) -> None:
         limpio = self.input_monto.text().replace("$", "").replace(".", "").replace(",", "").strip()
         try:
             monto = Decimal(limpio) if limpio else Decimal("0")
