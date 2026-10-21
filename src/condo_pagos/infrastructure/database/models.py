@@ -76,7 +76,6 @@ class PagoModel(Base):
     __table_args__ = (
         Index(
             "uq_pagos_referencia",
-            "unidad_id",
             "metodo_pago",
             "referencia",
             unique=True,
