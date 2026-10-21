@@ -10,10 +10,17 @@ from typing import Any, Protocol
 from uuid import UUID
 
 
-class UiContainer(Protocol):
-    nombre_condominio: str
+class UnidadesPort(Protocol):
+    """Operaciones requeridas por la pantalla de unidades."""
 
     def listar_unidades(self, solo_morosas: bool = False) -> list[Any]: ...
+    def buscar_unidades(self, texto: str = "") -> list[Any]: ...
+    def consultar_estado_cuenta(self, unidad_id: UUID | str) -> Any: ...
+
+
+class RegistrarPagoPort(Protocol):
+    """Operación requerida para registrar un pago."""
+
     def buscar_unidades(self, texto: str = "") -> list[Any]: ...
     def consultar_estado_cuenta(self, unidad_id: UUID | str) -> Any: ...
     def registrar_pago(
@@ -21,6 +28,11 @@ class UiContainer(Protocol):
         metodo_pago: str = "EFECTIVO", referencia: str = "",
         operador: str = "", fecha: date | None = None,
     ) -> Any: ...
+
+
+class PagosPort(Protocol):
+    """Operaciones requeridas por el historial de pagos."""
+
     def listar_pagos(
         self, *, filtros: dict[str, Any] | None = None,
         pagina: int = 1, limite: int = 50,
@@ -29,3 +41,9 @@ class UiContainer(Protocol):
     def anular_pago(
         self, *, pago_id: str, motivo: str = "", operador: str = "",
     ) -> str: ...
+
+
+class UiContainer(UnidadesPort, RegistrarPagoPort, PagosPort, Protocol):
+    """Contrato agregado que deben satisfacer los contenedores demo y real."""
+
+    nombre_condominio: str
