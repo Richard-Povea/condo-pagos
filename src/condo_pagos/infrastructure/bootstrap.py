@@ -265,17 +265,20 @@ class PostgresContainer:
         if row is None:
             raise ValueError(f"No existe el comprobante {comprobante_id}")
 
-        snapshot = ComprobanteData.desde_json(json.dumps(row.datos_json, ensure_ascii=False))
+        datos_json = (
+            row.datos_json
+            if isinstance(row.datos_json, str)
+            else json.dumps(row.datos_json, ensure_ascii=False)
+        )
+        snapshot = ComprobanteData.desde_json(datos_json)
         contenido_pdf = ReportLabPdfRenderer().renderizar(snapshot)
         self._pdf_dir.mkdir(parents=True, exist_ok=True)
         ruta = self._pdf_dir / f"comprobante_{row.folio}.pdf"
         ruta.write_bytes(contenido_pdf)
 
-        with self._session_factory.begin() as session:
-            session.execute(
-                text("UPDATE comprobantes SET pdf_ruta = :ruta WHERE folio = :folio"),
-                {"ruta": str(ruta), "folio": row.folio},
-            )
+        # Los comprobantes son inmutables: el trigger de PostgreSQL bloquea
+        # cualquier UPDATE, incluido pdf_ruta. El archivo generado se devuelve
+        # directamente sin intentar modificar el snapshot persistido.
         return str(ruta)
 
 
