@@ -88,7 +88,7 @@ class RegistrarPagoViewModel(BaseViewModel):
         if not self.unidad_seleccionada or self.monto_actual <= 0:
             return
 
-        def tarea():
+        def tarea() -> Any:
             # Comando hacia el backend
             return self._registrar_uc(
                 unidad_id=self.unidad_seleccionada.unidad_id, # type:ignore
