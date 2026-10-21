@@ -23,7 +23,12 @@ from condo_pagos.infrastructure.database.schema import verificar_esquema
 from condo_pagos.infrastructure.database.queries import ConsultasPostgres
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
-from condo_pagos.use_cases.dto import RegistrarPagoCmd
+from condo_pagos.use_cases.dto import (
+    EstadoCuentaDTO,
+    RegistrarPagoCmd,
+    ResultadoPagosDTO,
+    UnidadConsultaDTO,
+)
 from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
 
 log = logging.getLogger(__name__)
@@ -85,15 +90,15 @@ class PostgresContainer:
             saldo_total=Decimal(str(row.saldo_total or 0)),
         )
 
-    def listar_unidades(self, solo_morosas: bool = False):
+    def listar_unidades(self, solo_morosas: bool = False) -> list[UnidadConsultaDTO]:
         """Lista unidades y saldos delegando la lectura al adaptador de consultas."""
         return self._consultas.listar_unidades(solo_morosas=solo_morosas)
 
-    def buscar_unidades(self, texto: str = ""):
+    def buscar_unidades(self, texto: str = "") -> list[UnidadConsultaDTO]:
         """Busca unidades delegando la lectura al adaptador de consultas."""
         return self._consultas.buscar_unidades(texto)
 
-    def consultar_estado_cuenta(self, unidad_id: UUID | str):
+    def consultar_estado_cuenta(self, unidad_id: UUID | str) -> EstadoCuentaDTO:
         """Consulta el estado de cuenta tipado de una unidad."""
         return self._consultas.consultar_estado_cuenta(unidad_id)
 
@@ -129,7 +134,7 @@ class PostgresContainer:
 
     def listar_pagos(
         self, *, filtros: dict | None = None, pagina: int = 1, limite: int = 50,
-    ):
+    ) -> ResultadoPagosDTO:
         """Lista pagos con filtros y paginación desde el adaptador de consultas."""
         return self._consultas.listar_pagos(
             filtros=filtros, pagina=pagina, limite=limite
