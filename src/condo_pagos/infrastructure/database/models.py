@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text
@@ -92,4 +93,4 @@ class ComprobanteModel(Base):
     hash_anterior: Mapped[str | None] = mapped_column(String(64), nullable=True)
     hash_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     pdf_ruta: Mapped[str | None] = mapped_column(Text, nullable=True)
-    datos_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    datos_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
