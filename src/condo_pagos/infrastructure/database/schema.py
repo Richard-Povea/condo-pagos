@@ -5,7 +5,7 @@ from sqlalchemy.exc import OperationalError, ProgrammingError, SQLAlchemyError
 
 from condo_pagos.infrastructure.errors import ErrorDeInfraestructura, EsquemaIncompatible
 
-ESQUEMA_VERSION_ESPERADA = 1
+ESQUEMA_VERSION_ESPERADA = 2
 
 
 def verificar_esquema(engine: Engine) -> None:
