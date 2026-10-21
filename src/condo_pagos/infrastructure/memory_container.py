@@ -12,6 +12,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from uuid import UUID, uuid4
 
 from reportlab.lib.pagesizes import letter
@@ -133,7 +134,7 @@ class InMemoryContainer:
     def listar_pagos(
         self,
         *,
-        filtros: dict | None = None,
+        filtros: dict[str, Any] | None = None,
         pagina: int = 1,
         limite: int = 50,
     ) -> ResultadoPagosDemo:
