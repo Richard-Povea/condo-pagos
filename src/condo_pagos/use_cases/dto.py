@@ -20,7 +20,7 @@ class RegistrarPagoCmd:
     unidad_id: UUID
     monto: Decimal
     metodo_pago: str  # Ej: "TRANSFERENCIA", "EFECTIVO", "WEBPAY"
-    referencia: str
+    referencia: str | None
     residente_nombre: str
     fecha_pago: date
 
