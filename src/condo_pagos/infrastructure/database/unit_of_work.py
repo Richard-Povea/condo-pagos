@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -248,7 +249,7 @@ class SqlAlchemyComprobantesRepository(ComprobantesRepository):
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
-    def __init__(self, session_factory=None) -> None:
+    def __init__(self, session_factory: Callable[[], Session] | None = None) -> None:
         from condo_pagos.infrastructure.database.engine import SessionLocal
         self.session_factory = session_factory or SessionLocal
 
