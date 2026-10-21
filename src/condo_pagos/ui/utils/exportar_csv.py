@@ -1,8 +1,9 @@
 import csv
+from typing import Any
 from pathlib import Path
 
 
-def exportar_pagos_a_csv(ruta_archivo: Path | str, pagos: list) -> None:
+def exportar_pagos_a_csv(ruta_archivo: Path | str, pagos: list[Any]) -> None:
     """Exporta el listado de pagos a CSV usando UTF-8 con BOM para compatibilidad con Excel."""
     with open(ruta_archivo, mode="w", encoding="utf-8-sig", newline="") as archivo:
         writer = csv.writer(archivo, delimiter=";")
