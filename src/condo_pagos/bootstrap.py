@@ -28,7 +28,7 @@ class Container:
         return RegistrarPagoUseCase(uow=uow)
 
     def anular_pago_use_case(self) -> AnularPagoUseCase:
-        return AnularPagoUseCase(uow=self.uow_factory)
+        return AnularPagoUseCase(uow=self.uow_factory())
 
 
 def verificar_schema_info() -> None:
