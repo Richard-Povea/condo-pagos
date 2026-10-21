@@ -63,6 +63,7 @@ class PagoModel(Base):
     metodo_pago: Mapped[str] = mapped_column(String(50), nullable=False)
     referencia: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     residente_nombre: Mapped[str] = mapped_column(String(255), nullable=False)
+    registrado_por: Mapped[str] = mapped_column(String(80), nullable=False)
     fecha: Mapped[date] = mapped_column(Date, nullable=False)
     folio: Mapped[str] = mapped_column(String(20), nullable=False)
     exceso: Mapped[Decimal] = mapped_column(Numeric(12, 0), default=Decimal("0"), nullable=False)
