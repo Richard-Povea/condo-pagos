@@ -72,6 +72,7 @@ def test_registrar_pago_camino_feliz(py_fixture_uow):
     assert len(pagos) == 1
     assert pagos[0].referencia == "REF-12345"
     assert pagos[0].folio == "2026-000001"
+    assert pagos[0].registrado_por == "OPERADOR_TEST"
 
 
 def test_registrar_pago_exceso_deuda_no_consume_folio(py_fixture_uow):
