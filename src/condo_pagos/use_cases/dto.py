@@ -64,3 +64,46 @@ class EstadoCuentaDTO:
     total_adeudado: Decimal
     cargos_pendientes: tuple[CargoPendienteDTO, ...]
     pagos_recientes: tuple[PagoRecienteDTO, ...]
+
+@dataclass(frozen=True)
+class UnidadConsultaDTO:
+    """Unidad preparada para listados y búsqueda, con saldo calculado."""
+
+    unidad_id: UUID
+    identificador: str
+    condominio_nombre: str
+    activa: bool
+    saldo_total: Decimal
+
+    @property
+    def id(self) -> UUID:
+        """Alias compatible con componentes que consumen el atributo id."""
+        return self.unidad_id
+
+    @property
+    def codigo(self) -> str:
+        """Alias compatible con componentes que consumen el atributo codigo."""
+        return self.identificador
+
+
+@dataclass(frozen=True)
+class PagoListadoDTO:
+    """Fila de historial de pagos lista para presentar en la interfaz."""
+
+    pago_id: UUID
+    folio: str
+    fecha: date
+    unidad: str
+    pagador: str
+    monto: Decimal
+    metodo: str
+    estado: str
+    referencia: str
+
+
+@dataclass(frozen=True)
+class ResultadoPagosDTO:
+    """Página de resultados del historial y total de páginas disponibles."""
+
+    filas: tuple[PagoListadoDTO, ...]
+    total_paginas: int
