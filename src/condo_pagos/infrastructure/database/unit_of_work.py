@@ -133,6 +133,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
                 metodo_pago=pago.metodo_pago,
                 referencia=pago.referencia,
                 residente_nombre=pago.residente_nombre,
+                registrado_por=pago.registrado_por,
                 fecha=pago.fecha,
                 folio=pago.folio,
                 exceso=pago.exceso,
@@ -151,6 +152,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
             metodo_pago=model.metodo_pago,
             referencia=model.referencia,
             residente_nombre=model.residente_nombre,
+            registrado_por=model.registrado_por,
             fecha=model.fecha,
             folio=model.folio,
             exceso=model.exceso,
@@ -170,7 +172,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
         stmt = text(
             """
             SELECT id, unidad_id, monto, metodo_pago, referencia, 
-                   residente_nombre, fecha, folio, exceso, estado
+                   residente_nombre, registrado_por, fecha, folio, exceso, estado
             FROM pagos
             WHERE unidad_id = :unidad_id
             ORDER BY fecha DESC
@@ -186,6 +188,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
                 metodo_pago=row.metodo_pago,
                 referencia=row.referencia,
                 residente_nombre=row.residente_nombre,
+                registrado_por=row.registrado_por,
                 fecha=row.fecha,
                 folio=row.folio,
                 exceso=row.exceso,
