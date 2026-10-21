@@ -60,11 +60,14 @@ class OperacionesPagoPostgres:
         except ValueError as exc:
             raise ValueError(f"Identificador de unidad inválido: {unidad_id}") from exc
 
-        with self._session_factory() as session:
-            unidad = session.execute(
-                text("SELECT codigo FROM unidades WHERE id = :id"),
-                {"id": unidad_uuid},
-            ).fetchone()
+        try:
+            with self._session_factory() as session:
+                unidad = session.execute(
+                    text("SELECT codigo FROM unidades WHERE id = :id"),
+                    {"id": unidad_uuid},
+                ).fetchone()
+        except SQLAlchemyError as exc:
+            raise ErrorDeInfraestructura() from exc
         if unidad is None:
             raise DominioError(f"La unidad {unidad_id} no existe.")
 
