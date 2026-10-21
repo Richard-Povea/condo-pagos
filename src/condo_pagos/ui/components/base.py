@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFocusEvent
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
@@ -38,7 +39,7 @@ class CampoMonto(QLineEdit):
         super().__init__(parent)
         self.setPlaceholderText("$ 0")
 
-    def focusOutEvent(self, event) -> None:
+    def focusOutEvent(self, event: QFocusEvent) -> None:
         super().focusOutEvent(event)
         # Aquí se aplicará el formateo visual al perder el foco en siguientes iteraciones
 
