@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from typing import Any
 from datetime import date
 
 from PySide6.QtCore import Signal
@@ -13,11 +15,11 @@ class PagosViewModel(BaseViewModel):
 
     def __init__(
             self, 
-            listar_pagos_uc, 
-            emitir_pdf_uc, 
-            anular_pago_uc, 
-            abridor_archivos, 
-            parent=None) -> None:
+            listar_pagos_uc: Callable[..., Any],
+            emitir_pdf_uc: Callable[..., Any],
+            anular_pago_uc: Callable[..., Any],
+            abridor_archivos: Any,
+            parent: Any | None = None) -> None:
         super().__init__(parent=parent)
         self._listar_uc = listar_pagos_uc
         self._emitir_pdf_uc = emitir_pdf_uc
@@ -35,7 +37,7 @@ class PagosViewModel(BaseViewModel):
 
     def cargar_pagos(self) -> None:
         """Carga la página actual de pagos aplicando los filtros combinados."""
-        def tarea():
+        def tarea() -> Any:
             filtros = {
                 "texto": self.filtro_texto,
                 "metodo": self.filtro_metodo,
@@ -49,7 +51,7 @@ class PagosViewModel(BaseViewModel):
                 limite=self.limite_por_pagina
                 )
 
-        def on_ok(resultado):
+        def on_ok(resultado: Any) -> None:
             if resultado:
                 self.pagos_cargados.emit(resultado.filas, resultado.total_paginas)
             else:
@@ -70,7 +72,7 @@ class PagosViewModel(BaseViewModel):
             # Si no existe, solicitamos al backend la reimpresión desde el snapshot
             return self._emitir_pdf_uc(comprobante_id)
 
-        def on_ok(ruta_pdf):
+        def on_ok(ruta_pdf: Any) -> None:
             self._abridor.abrir(ruta_pdf)
             self.comprobante_abierto.emit(str(ruta_pdf))
 
@@ -84,7 +86,7 @@ class PagosViewModel(BaseViewModel):
         def tarea():
             return self._anular_uc(pago_id=pago_id, motivo=motivo, operador=operador)
 
-        def on_ok(folio):
+        def on_ok(folio: str) -> None:
             self.pago_anulado.emit(folio)
             self.cargar_pagos()  # Refrescar listado
 
