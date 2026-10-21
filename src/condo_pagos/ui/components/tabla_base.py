@@ -1,3 +1,5 @@
+from typing import Any
+
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
 
 
@@ -5,7 +7,7 @@ class BaseTableModel(QAbstractTableModel):
     def __init__(
             self, 
             headers: list[str], 
-            datos: list[list], 
+            datos: list[list[Any]], 
             alinear_derecha: set[int] | None = None) -> None:
         super().__init__()
         self._headers = headers
@@ -29,7 +31,7 @@ class BaseTableModel(QAbstractTableModel):
             section: int, 
             orientation: Qt.Orientation, 
             role: int = Qt.ItemDataRole.DisplayRole
-            ):
+            ) -> str | None:
         if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             return self._headers[section]
         return None
@@ -37,7 +39,7 @@ class BaseTableModel(QAbstractTableModel):
     def data(
             self, 
             index: QModelIndex | QPersistentModelIndex, 
-            role: int = Qt.ItemDataRole.DisplayRole):
+            role: int = Qt.ItemDataRole.DisplayRole) -> Any | None:
         if not index.isValid():
             return None
         
