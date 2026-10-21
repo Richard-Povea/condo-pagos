@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
 ALTER TABLE gc.pagos DROP CONSTRAINT IF EXISTS uq_pagos_referencia;
 DROP INDEX IF EXISTS gc.uq_pagos_referencia;
 CREATE UNIQUE INDEX uq_pagos_referencia
-    ON gc.pagos (metodo_pago, referencia)
+    ON gc.pagos (referencia)
     WHERE referencia IS NOT NULL AND estado = 'VIGENTE';
 
 CREATE TABLE IF NOT EXISTS gc.folios_secuencia (
