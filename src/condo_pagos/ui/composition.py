@@ -1,5 +1,6 @@
 # src/condo_pagos/ui/composition.py
 from PySide6.QtCore import QThreadPool
+from condo_pagos.ui.ports import UiContainer
 from condo_pagos.ui.services.navegacion import ServicioNavegacion
 from condo_pagos.ui.services.real import ServicioDialogosReal, AbridorArchivosReal
 from condo_pagos.ui.services.configuracion import ConfiguracionLocal
@@ -11,7 +12,7 @@ from condo_pagos.ui.views.unidades_view import UnidadesView
 from condo_pagos.ui.views.pagos_view import PagosView
 from condo_pagos.ui.views.main_window import MainWindow
 
-def crear_ventana(container, config: ConfiguracionLocal) -> MainWindow:
+def crear_ventana(container: UiContainer, config: ConfiguracionLocal) -> MainWindow:
     nav = ServicioNavegacion()
     dialogos = ServicioDialogosReal()
     abridor = AbridorArchivosReal()
