@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS gc.schema_info (
 );
 
 INSERT INTO gc.schema_info (version)
-SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM gc.schema_info);
+SELECT 2 WHERE NOT EXISTS (SELECT 1 FROM gc.schema_info);
+UPDATE gc.schema_info SET version = 2;
 
 -- Tablas del sistema
 CREATE TABLE IF NOT EXISTS gc.unidades (
@@ -56,6 +57,12 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
     exceso NUMERIC(12, 0) NOT NULL DEFAULT 0,
     estado gc.estado_pago_enum NOT NULL DEFAULT 'VIGENTE'
 );
+
+-- La referencia solo debe ser única entre pagos vigentes y no nulos.
+DROP INDEX IF EXISTS gc.uq_pagos_referencia;
+CREATE UNIQUE INDEX uq_pagos_referencia
+    ON gc.pagos (unidad_id, metodo_pago, referencia)
+    WHERE referencia IS NOT NULL AND estado = 'VIGENTE';
 
 CREATE TABLE IF NOT EXISTS gc.folios_secuencia (
     anio VARCHAR(4) PRIMARY KEY,
