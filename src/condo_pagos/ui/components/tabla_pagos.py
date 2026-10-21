@@ -1,3 +1,5 @@
+from typing import Any
+
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtGui import QBrush, QColor, QFont
 
@@ -6,7 +8,7 @@ from condo_pagos.ui.formatters import fmt_clp, fmt_fecha
 
 
 class PagosTableModel(BaseTableModel):
-    def __init__(self, pagos: list) -> None:
+    def __init__(self, pagos: list[Any]) -> None:
         headers = [
             "Folio", 
             "Fecha", 
@@ -37,7 +39,7 @@ class PagosTableModel(BaseTableModel):
             self, 
             index: QModelIndex | QPersistentModelIndex | None, 
             role: int = Qt.ItemDataRole.DisplayRole
-            ):
+            ) -> Any | None:
         if not index or not index.isValid():
             return None
 
