@@ -84,7 +84,7 @@ def test_1_folios_concurrentes(uow):  # <-- Asegúrate de recibir la uow del fix
                 metodo_pago="TRANSFERENCIA",
                 referencia=f"REF-CONC-{idx}",
                 residente_nombre=f"Residente {idx}",
-        registrado_por="OPERADOR_TEST",
+                registrado_por="OPERADOR_TEST",
                 fecha_pago=date(2026, 10, 12)
             )
             return caso_uso.ejecutar(cmd).folio
@@ -118,7 +118,7 @@ def test_2_doble_pago_simultaneo_misma_unidad():
             metodo_pago="TRANSFERENCIA",
             referencia=ref,
             residente_nombre="Simultáneo",
-        registrado_por="OPERADOR_TEST",
+            registrado_por="OPERADOR_TEST",
             fecha_pago=date(2026, 10, 12)
         )
         return caso_uso.ejecutar(cmd)
