@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -17,9 +18,9 @@ class RegistrarPagoViewModel(BaseViewModel):
 
     def __init__(
             self, 
-            buscar_unidades_uc, 
-            consultar_estado_uc, 
-            registrar_pago_uc, parent=None) -> None:
+            buscar_unidades_uc: Callable[..., Any],
+            consultar_estado_uc: Callable[..., Any],
+            registrar_pago_uc: Callable[..., Any], parent: Any | None = None) -> None:
         super().__init__(parent=parent)
         self._buscar_uc = buscar_unidades_uc
         self._consultar_estado_uc = consultar_estado_uc
@@ -40,10 +41,10 @@ class RegistrarPagoViewModel(BaseViewModel):
         self._token_busqueda += 1
         token_actual = self._token_busqueda
 
-        def tarea():
+        def tarea() -> Any:
             return self._buscar_uc(texto)
 
-        def on_ok(res):
+        def on_ok(res: Any) -> None:
             if token_actual == self._token_busqueda:
                 self.resultado_busqueda.emit(res)
 
@@ -98,7 +99,7 @@ class RegistrarPagoViewModel(BaseViewModel):
                 fecha=self.fecha_pago
             )
 
-        def on_ok(resultado):
+        def on_ok(resultado: Any) -> None:
             self.pago_registrado.emit(resultado.folio)
 
         self._ejecutar(tarea, on_ok=on_ok)
