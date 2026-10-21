@@ -69,7 +69,7 @@ def test_referencias_opcionales_y_unicidad_solo_en_pagos_vigentes() -> None:
                 with connection.begin_nested():
                     insertar_pago(
                         pago_transferencia_2,
-                        "TRANSFERENCIA",
+                        "EFECTIVO",
                         "REF-UNICA",
                         "IDX-004",
                         "VIGENTE",
@@ -80,7 +80,7 @@ def test_referencias_opcionales_y_unicidad_solo_en_pagos_vigentes() -> None:
                 {"id": pago_transferencia_1},
             )
             insertar_pago(
-                pago_transferencia_2, "TRANSFERENCIA", "REF-UNICA", "IDX-004", "VIGENTE"
+                pago_transferencia_2, "EFECTIVO", "REF-UNICA", "IDX-004", "VIGENTE"
             )
         finally:
             transaction.rollback()
