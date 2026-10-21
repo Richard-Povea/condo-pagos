@@ -13,7 +13,7 @@ class BaseViewModel(QObject):
     def __init__(self, pool: QThreadPool | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._pool = pool or QThreadPool.globalInstance()
-        self._pendientes: dict[str, tuple[Worker, Callable[[object], None]]] = {}
+        self._pendientes: dict[str, tuple[Worker, Callable[[Any], None]]] = {}
 
     @property
     def ocupado(self) -> bool:
@@ -28,7 +28,7 @@ class BaseViewModel(QObject):
         self._pool.start(w)
 
     @Slot(str, object)
-    def _cuando_ok(self, wid: str, res: object) -> None:
+    def _cuando_ok(self, wid: str, res: Any) -> None:
         _, on_ok = self._pendientes.pop(wid)
         self.ocupado_cambio.emit(self.ocupado)
         on_ok(res)
