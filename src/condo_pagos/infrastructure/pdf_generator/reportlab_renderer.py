@@ -1,4 +1,5 @@
 import io
+from typing import Any
 
 import qrcode
 from reportlab.lib import colors
@@ -8,6 +9,7 @@ from reportlab.platypus import (
     Image as RLImage,
 )
 from reportlab.platypus import (
+    Flowable,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -83,7 +85,7 @@ class ReportLabPdfRenderer:
             fontName='Helvetica-Bold',
         )
 
-        story = []
+        story: list[Flowable] = []
 
         # --- ENCABEZADO ---
         story.append(Paragraph("COMPROBANTE DE PAGO - GASTOS COMUNES", title_style))
