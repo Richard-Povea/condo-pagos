@@ -29,7 +29,7 @@ class UnidadesViewModel(BaseViewModel):
 
     def seleccionar_unidad(self, unidad_id: str) -> None:
         """Consulta el estado de cuenta detallado de una unidad específica."""
-        def tarea():
+        def tarea() -> Any:
             return self._consultar_estado_uc(unidad_id)
 
         self._ejecutar(tarea, on_ok=lambda estado: self.detalle_unidad_cargado.emit(estado))
