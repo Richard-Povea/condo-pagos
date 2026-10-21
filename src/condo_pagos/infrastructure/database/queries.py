@@ -192,7 +192,7 @@ class ConsultasPostgres:
                 params,
             ).fetchall()
 
-        filas = tuple(
+        filas = [
             PagoListadoDTO(
                 pago_id=row.id,
                 folio=row.folio,
@@ -205,7 +205,7 @@ class ConsultasPostgres:
                 referencia=row.referencia,
             )
             for row in rows
-        )
+        ]
         return ResultadoPagosDTO(
             filas=filas,
             total_paginas=(total + limite_seguro - 1) // limite_seguro if total else 0,
