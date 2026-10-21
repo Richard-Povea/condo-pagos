@@ -65,7 +65,7 @@ class PagosViewModel(BaseViewModel):
             ruta_actual_disco: str | None
             ) -> None:
         """Abre el PDF existente o lo reimprime de forma idempotente si falta."""
-        def tarea():
+        def tarea() -> Any:
             from pathlib import Path
             if ruta_actual_disco and Path(ruta_actual_disco).exists():
                 return ruta_actual_disco
