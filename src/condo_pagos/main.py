@@ -8,7 +8,6 @@ from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from condo_pagos.infrastructure.errors import ErrorDeInfraestructura, EsquemaIncompatible
-
 from condo_pagos.ui.app import crear_aplicacion
 
 log = logging.getLogger(__name__)
@@ -32,11 +31,10 @@ def _crear_container(modo_demo: bool):
 
         return InMemoryContainer()
 
-    # El contenedor real aún no está implementado en esta rama. Importarlo aquí
-    # mantiene la dependencia fuera de la capa UI y deja el modo demo operativo.
+    # Los imports diferidos mantienen la composición fuera de la capa UI.
     try:
-        from condo_pagos.infrastructure.bootstrap import build_container
         from condo_pagos.config import Settings
+        from condo_pagos.infrastructure.bootstrap import build_container
     except ImportError as exc:
         raise RuntimeError(
             "El contenedor de PostgreSQL todavía no está implementado. "
