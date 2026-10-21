@@ -83,7 +83,7 @@ class PagosViewModel(BaseViewModel):
         if len(motivo.strip()) < 10:
             raise ValueError("El motivo de anulación debe tener al menos 10 caracteres.")
 
-        def tarea():
+        def tarea() -> Any:
             return self._anular_uc(pago_id=pago_id, motivo=motivo, operador=operador)
 
         def on_ok(folio: str) -> None:
