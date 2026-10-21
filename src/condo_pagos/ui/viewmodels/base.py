@@ -19,7 +19,7 @@ class BaseViewModel(QObject):
     def ocupado(self) -> bool:
         return bool(self._pendientes)
 
-    def _ejecutar(self, fn: Callable[..., Any], *args: Any, on_ok: Callable[[object], None]) -> None:
+    def _ejecutar(self, fn: Callable[..., Any], *args: Any, on_ok: Callable[[Any], None]) -> None:
         w = Worker(fn, *args)
         w.signals.ok.connect(self._cuando_ok)
         w.signals.fail.connect(self._cuando_fail)
