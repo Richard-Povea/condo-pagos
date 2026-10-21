@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -17,11 +19,13 @@ from condo_pagos.config import Settings
 from condo_pagos.domain.comprobante import ComprobanteData
 from condo_pagos.domain.errors import DominioError
 from condo_pagos.infrastructure.pdf_generator.reportlab_renderer import ReportLabPdfRenderer
-from condo_pagos.infrastructure.database.bootstrap import ESQUEMA_VERSION_ESPERADA
+from condo_pagos.infrastructure.database.schema import verificar_esquema
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
 from condo_pagos.use_cases.dto import RegistrarPagoCmd
 from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
+
+log = logging.getLogger(__name__)
 
 
 class PostgresContainer:
@@ -34,30 +38,35 @@ class PostgresContainer:
             settings.condo_database_url,
             pool_pre_ping=True,
             future=True,
-            connect_args={"options": "-c search_path=gc,public"},
+            connect_args={
+                "connect_timeout": 5,
+                "options": "-c search_path=gc,public",
+            },
             poolclass=NullPool,
+        )
+        log.info(
+            "Configurando conexión PostgreSQL: %s",
+            self._engine.url.render_as_string(hide_password=True),
         )
         self._session_factory = sessionmaker(
             bind=self._engine, expire_on_commit=False, future=True
         )
         self._uow_factory = lambda: SqlAlchemyUnitOfWork(self._session_factory)
         self._pdf_dir = settings.pdf_dir
-        self._verificar_esquema()
+        verificar_esquema(self._engine)
+        self._verificar_directorio_pdf()
 
-    def _verificar_esquema(self) -> None:
+    def _verificar_directorio_pdf(self) -> None:
+        """Advierte si no se pueden guardar comprobantes, sin bloquear pagos."""
         try:
-            with self._engine.connect() as connection:
-                version = connection.execute(
-                    text("SELECT version FROM gc.schema_info")
-                ).scalar_one_or_none()
-        except Exception as exc:
-            raise RuntimeError(
-                "No se pudo verificar el esquema PostgreSQL (gc.schema_info)."
-            ) from exc
-        if version != ESQUEMA_VERSION_ESPERADA:
-            raise RuntimeError(
-                f"Versión de esquema incompatible: {version!r}; "
-                f"se requiere {ESQUEMA_VERSION_ESPERADA}."
+            self._pdf_dir.mkdir(parents=True, exist_ok=True)
+            if not os.access(self._pdf_dir, os.W_OK):
+                raise OSError("el directorio no tiene permisos de escritura")
+        except OSError:
+            log.warning(
+                "No se pueden guardar comprobantes PDF en %s. "
+                "El registro de pagos seguirá disponible.",
+                self._pdf_dir,
             )
 
     @staticmethod
