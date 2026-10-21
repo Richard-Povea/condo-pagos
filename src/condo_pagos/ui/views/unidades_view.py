@@ -1,4 +1,6 @@
-from PySide6.QtCore import Qt
+from typing import Any
+
+from PySide6.QtCore import QModelIndex, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
@@ -17,11 +19,11 @@ from condo_pagos.ui.components.tabla_unidades import UnidadesTableModel
 
 
 class UnidadesView(QWidget):
-    def __init__(self, vm, parent=None) -> None:
+    def __init__(self, vm: Any, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._vm = vm
-        self._unidades = []
-        self._unidad_seleccionada = None
+        self._unidades: list[Any] = []
+        self._unidad_seleccionada: Any | None = None
         self._inicializar_ui()
         self._conectar_signals()
 
@@ -86,9 +88,9 @@ class UnidadesView(QWidget):
         self._vm.detalle_unidad_cargado.connect(self._mostrar_estado_cuenta)
         self._vm.error.connect(self._mostrar_error)
 
-    def _actualizar_tabla(self, unidades: list) -> None:
+    def _actualizar_tabla(self, unidades: list[Any]) -> None:
         self._unidades = list(unidades)
-        self._unidades_visibles = list(unidades)
+        self._unidades_visibles: list[Any] = list(unidades)
         self._unidad_seleccionada = None
         self.btn_ir_pago.setEnabled(False)
         modelo = UnidadesTableModel(self._unidades)
@@ -110,7 +112,7 @@ class UnidadesView(QWidget):
         # Mantener el mapeo de filas sincronizado con el modelo filtrado.
         self._unidades_visibles = unidades
 
-    def _seleccionar_fila(self, index) -> None:
+    def _seleccionar_fila(self, index: QModelIndex) -> None:
         unidades = getattr(self, "_unidades_visibles", self._unidades)
         fila = index.row()
         if fila < 0 or fila >= len(unidades):
@@ -123,13 +125,14 @@ class UnidadesView(QWidget):
         )
         self._vm.seleccionar_unidad(str(self._unidad_seleccionada.unidad_id))
 
-    def _mostrar_estado_cuenta(self, estado) -> None:
+    def _mostrar_estado_cuenta(self, estado: Any | None) -> None:
         if estado is None or self._unidad_seleccionada is None:
             return
-        saldo = getattr(estado, "total_adeudado", self._unidad_seleccionada.saldo_total)
+        unidad = self._unidad_seleccionada
+        saldo = getattr(estado, "total_adeudado", unidad.saldo_total)
         self.lbl_info_detalle.setText(
-            f"Unidad {self._unidad_seleccionada.identificador}\n"
-            f"Responsable: {self._unidad_seleccionada.responsable}\n"
+            f"Unidad {unidad.identificador}\n"
+            f"Responsable: {unidad.responsable}\n"
             f"Saldo pendiente: $ {saldo:,.0f}"
         )
 
