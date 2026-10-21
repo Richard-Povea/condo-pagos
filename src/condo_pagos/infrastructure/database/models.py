@@ -76,7 +76,6 @@ class PagoModel(Base):
     __table_args__ = (
         Index(
             "uq_pagos_referencia",
-            "metodo_pago",
             "referencia",
             unique=True,
             postgresql_where=text("referencia IS NOT NULL AND estado = 'VIGENTE'"),
