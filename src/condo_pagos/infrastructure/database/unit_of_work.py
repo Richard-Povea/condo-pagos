@@ -183,7 +183,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
         model = self.session.get(PagoModel, pago_id)
         if not model:
             return None
-        return Pago(
+        pago = Pago(
             id=model.id,
             unidad_id=model.unidad_id,
             monto=model.monto,
@@ -199,6 +199,8 @@ class SqlAlchemyPagosRepository(PagosRepository):
             anulado_por=model.anulado_por,
             motivo_anulacion=model.motivo_anulacion,
         )
+        pago._establecer_condominio_id(model.condominio_id)
+        return pago
     
     def existe_por_referencia(
         self, referencia: str | None, condominio_id: UUID, metodo_pago: str
@@ -227,7 +229,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
     def listar_recientes_por_unidad(self, unidad_id: UUID, limite: int = 10) -> list[Pago]:
         stmt = text(
             """
-            SELECT id, unidad_id, monto, metodo_pago, referencia, 
+            SELECT id, unidad_id, condominio_id, monto, metodo_pago, referencia,
                    residente_nombre, registrado_por, fecha, folio, exceso, estado,
                    anulado_en, anulado_por, motivo_anulacion
             FROM gc.pagos
@@ -237,8 +239,9 @@ class SqlAlchemyPagosRepository(PagosRepository):
             """
         )
         result = self.session.execute(stmt, {"unidad_id": unidad_id, "limite": limite}).fetchall()
-        return [
-            Pago(
+        pagos: list[Pago] = []
+        for row in result:
+            pago = Pago(
                 id=row.id,
                 unidad_id=row.unidad_id,
                 monto=row.monto,
@@ -254,8 +257,9 @@ class SqlAlchemyPagosRepository(PagosRepository):
                 anulado_por=row.anulado_por,
                 motivo_anulacion=row.motivo_anulacion,
             )
-            for row in result
-        ]
+            pago._establecer_condominio_id(row.condominio_id)
+            pagos.append(pago)
+        return pagos
 
 
 class SqlAlchemyFoliosRepository(FoliosRepository):
