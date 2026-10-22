@@ -17,7 +17,7 @@ def _normalizar_sql(value: str) -> str:
     value = value.lower().replace('"', "")
     value = re.sub(r"::[a-z_][a-z0-9_.]*", "", value)
     value = re.sub(r"\s+", " ", value)
-    value = value.replace("(", "").replace(")", "")
+    value = value.replace("(", " ").replace(")", " ")
     value = re.sub(r"\s*=\s*", " = ", value)
     value = re.sub(r"\s*,\s*", ", ", value)
     return value.strip()
