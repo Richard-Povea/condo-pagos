@@ -9,7 +9,7 @@ class AnularPagoUseCase:
     def __init__(self, uow: UnitOfWork) -> None:
         self.uow = uow
 
-    def ejecutar(self, pago_id: UUID) -> None:
+    def ejecutar(self, pago_id: UUID, *, operador: str, motivo: str) -> None:
         with self.uow:
             # 1. Obtener el pago
             pago = self.uow.pagos.obtener_por_id(pago_id)
@@ -37,9 +37,8 @@ class AnularPagoUseCase:
                         cargo.estado = EstadoCargo.PENDIENTE
                     self.uow.cargos.guardar(cargo)
 
-            # 5. Marcar el pago como anulado (creamos una nueva entidad o actualizamos su estado)
-            pago.estado = EstadoPago.ANULADO
-            # Nota: guardamos el pago actualizado en el repositorio
+            # 5. Registrar estado y auditoría requeridos por la restricción SQL.
+            pago.anular(operador=operador, motivo=motivo)
             self.uow.pagos.guardar(pago)
 
             self.uow.commit()
