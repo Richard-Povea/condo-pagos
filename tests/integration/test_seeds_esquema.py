@@ -3,13 +3,13 @@
 import pytest
 from sqlalchemy import text
 
-from condo_pagos.infrastructure.database.engine import engine
+from tests.integration.seed_ids import PAGO_SEMILLA_ANULADO, PAGO_SEMILLA_SIN_REFERENCIA
 from condo_pagos.infrastructure.database.schema import ESQUEMA_VERSION_ESPERADA
 
 pytestmark = pytest.mark.integration
 
 
-def test_seeds_cargan_version_operador_referencia_nula_y_anulacion_valida() -> None:
+def test_seeds_cargan_version_operador_referencia_nula_y_anulacion_valida(engine) -> None:
     with engine.connect() as connection:
         version = connection.execute(
             text("SELECT version FROM gc.schema_info")
@@ -21,10 +21,11 @@ def test_seeds_cargan_version_operador_referencia_nula_y_anulacion_valida() -> N
                 """
                 SELECT registrado_por
                 FROM gc.pagos
-                WHERE id = '44444444-4444-4444-4444-444444444444'
+                WHERE id = :pago_id
                   AND referencia IS NULL
                 """
-            )
+            ),
+            {"pago_id": PAGO_SEMILLA_SIN_REFERENCIA},
         ).scalar_one()
         assert pago_sin_referencia == "ADMIN_DEMO"
 
@@ -33,9 +34,10 @@ def test_seeds_cargan_version_operador_referencia_nula_y_anulacion_valida() -> N
                 """
                 SELECT estado, anulado_en, anulado_por, motivo_anulacion, registrado_por
                 FROM gc.pagos
-                WHERE id = '66666666-6666-6666-6666-666666666666'
+                WHERE id = :pago_id
                 """
-            )
+            ),
+            {"pago_id": PAGO_SEMILLA_ANULADO},
         ).one()
         assert pago_anulado.estado == "ANULADO"
         assert pago_anulado.anulado_en is not None
