@@ -332,3 +332,7 @@ def test_deriva_detecta_hash_sha256_que_deja_de_ser_char_64() -> None:
         "ALTER TABLE gc.comprobantes ALTER COLUMN hash_sha256 TYPE VARCHAR(64) "
         "USING hash_sha256::varchar(64)"
     )
+
+
+def test_deriva_detecta_check_de_anulacion_ausente() -> None:
+    _mutacion_falla("ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_anulacion")
