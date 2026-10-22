@@ -19,7 +19,7 @@ BASE_URL = make_url(
         "postgresql+psycopg://condo_test:condo_test_pw@localhost:5433/condo_test",
     )
 )
-PLANTILLA = "condo_plantilla"
+PLANTILLA = f"condo_plantilla_{os.environ.get('PYTEST_XDIST_WORKER', 'master')}"
 
 
 def _admin_engine():
