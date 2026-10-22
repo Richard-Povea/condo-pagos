@@ -133,8 +133,8 @@ def test_integration_folios_secuencia_y_pago_duplicado(uow):
             id=uuid4(),
             unidad_id=unidad_id,
             monto=Decimal("15000"),
-            metodo_pago="EFECTIVO",
-            referencia="REF-INTEGRATION-001", # Misma referencia
+            metodo_pago="TRANSFERENCIA",
+            referencia="REF-INTEGRATION-001", # Misma referencia y método
             residente_nombre="Otro Residente",
             fecha=date(2026, 10, 12),
             registrado_por="OPERADOR_TEST",
