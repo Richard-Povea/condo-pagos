@@ -3,7 +3,14 @@
 import pytest
 from sqlalchemy import text
 
-from tests.integration.seed_ids import PAGO_SEMILLA_ANULADO, PAGO_SEMILLA_SIN_REFERENCIA
+from seed_ids import (
+    CARGO_SEMILLA,
+    PAGO_SEMILLA_ANULADO,
+    PAGO_SEMILLA_SIN_REFERENCIA,
+    PAGO_SEMILLA_SIN_REFERENCIA_2,
+    UNIDAD_SEMILLA_101,
+    UNIDAD_SEMILLA_102,
+)
 from condo_pagos.infrastructure.database.schema import ESQUEMA_VERSION_ESPERADA
 
 pytestmark = pytest.mark.integration
@@ -15,6 +22,21 @@ def test_seeds_cargan_version_operador_referencia_nula_y_anulacion_valida(engine
             text("SELECT version FROM gc.schema_info")
         ).scalar_one()
         assert version == ESQUEMA_VERSION_ESPERADA == 2
+
+        seeds_esperados = (
+            ("gc.unidades", UNIDAD_SEMILLA_101),
+            ("gc.unidades", UNIDAD_SEMILLA_102),
+            ("gc.cargos", CARGO_SEMILLA),
+            ("gc.pagos", PAGO_SEMILLA_SIN_REFERENCIA),
+            ("gc.pagos", PAGO_SEMILLA_SIN_REFERENCIA_2),
+            ("gc.pagos", PAGO_SEMILLA_ANULADO),
+        )
+        for tabla, seed_id in seeds_esperados:
+            existe = connection.execute(
+                text(f"SELECT EXISTS (SELECT 1 FROM {tabla} WHERE id = :seed_id)"),
+                {"seed_id": seed_id},
+            ).scalar_one()
+            assert existe, f"Falta el seed {seed_id} en {tabla}"
 
         pago_sin_referencia = connection.execute(
             text(
