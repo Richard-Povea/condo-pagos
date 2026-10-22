@@ -15,7 +15,8 @@ ON CONFLICT (id) DO NOTHING;
 -- Pagos ficticios: referencias nulas permitidas para efectivo.
 INSERT INTO gc.pagos (
     id, unidad_id, condominio_id, monto, metodo_pago, referencia, residente_nombre,
-    registrado_por, fecha, folio, exceso, estado
+    registrado_por, fecha, folio, exceso, estado,
+    anulado_en, anulado_por, motivo_anulacion
 )
 VALUES
     (
@@ -23,14 +24,16 @@ VALUES
         '11111111-1111-1111-1111-111111111111',
         '99999999-9999-9999-9999-999999999999',
         20000, 'EFECTIVO', NULL, 'Residente Demo 101',
-        'ADMIN_DEMO', '2026-10-18', 'DEMO-2026-0001', 0, 'VIGENTE'
+        'ADMIN_DEMO', '2026-10-18', 'DEMO-2026-0001', 0, 'VIGENTE',
+        NULL, NULL, NULL
     ),
     (
         '55555555-5555-5555-5555-555555555555',
         '11111111-1111-1111-1111-111111111111',
         '99999999-9999-9999-9999-999999999999',
         15000, 'EFECTIVO', NULL, 'Residente Demo 101',
-        'ADMIN_DEMO', '2026-10-19', 'DEMO-2026-0002', 0, 'VIGENTE'
+        'ADMIN_DEMO', '2026-10-19', 'DEMO-2026-0002', 0, 'VIGENTE',
+        NULL, NULL, NULL
     ),
     (
         '66666666-6666-6666-6666-666666666666',
