@@ -146,7 +146,7 @@ def test_fk_compuesta_y_check_de_auditoria_de_anulacion() -> None:
                     _insertar_pago(
                         connection, pago_id=uuid4(), unidad_id=unidad_id,
                         condominio_id=condominio_id, metodo="EFECTIVO",
-                        referencia=None, folio="IDX-ANULADO-SIN-OPERADOR",
+                        referencia=None, folio="IDX-ANULADO-SIN-OP",
                         estado="ANULADO", anulado_en=datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc),
                         anulado_por=None, motivo_anulacion="Motivo suficientemente largo",
                     )
@@ -156,7 +156,7 @@ def test_fk_compuesta_y_check_de_auditoria_de_anulacion() -> None:
                     _insertar_pago(
                         connection, pago_id=uuid4(), unidad_id=unidad_id,
                         condominio_id=condominio_id, metodo="EFECTIVO",
-                        referencia=None, folio="IDX-ANULADO-MOTIVO-CORTO",
+                        referencia=None, folio="IDX-ANULADO-MOT-CORT",
                         estado="ANULADO", anulado_en="2026-10-20T12:00:00Z",
                         anulado_por="OPERADOR_TEST", motivo_anulacion="corto",
                     )
@@ -166,7 +166,7 @@ def test_fk_compuesta_y_check_de_auditoria_de_anulacion() -> None:
                     _insertar_pago(
                         connection, pago_id=uuid4(), unidad_id=unidad_id,
                         condominio_id=condominio_id, metodo="EFECTIVO",
-                        referencia=None, folio="IDX-VIGENTE-CON-AUDITORIA",
+                        referencia=None, folio="IDX-VIGENTE-AUDIT",
                         estado="VIGENTE", anulado_en="2026-10-20T12:00:00Z",
                         anulado_por="OPERADOR_TEST",
                         motivo_anulacion="Motivo suficientemente largo",
