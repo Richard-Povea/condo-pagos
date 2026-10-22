@@ -129,7 +129,9 @@ class OperacionesPagoPostgres:
             raise ValueError(f"No se encontró el pago {pago_id}")
 
         try:
-            AnularPagoUseCase(self._uow_factory()).ejecutar(pago_uuid)
+            AnularPagoUseCase(self._uow_factory()).ejecutar(
+                pago_uuid, operador=operador, motivo=motivo
+            )
         except SQLAlchemyError as exc:
             raise ErrorDeInfraestructura() from exc
         return str(folio)
