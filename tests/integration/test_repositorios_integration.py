@@ -142,7 +142,8 @@ def test_integration_folios_secuencia_y_pago_duplicado(uow):
             exceso=Decimal("0"),
             estado=EstadoPago.VIGENTE
         )
-        uow.pagos.guardar(pago_duplicado)
-        
-        with pytest.raises(DominioError, match="Ya existe un pago registrado con esa referencia"):
-            uow.commit()
+        with pytest.raises(
+            DominioError,
+            match="Ya existe un pago registrado con esa referencia",
+        ):
+            uow.pagos.guardar(pago_duplicado)
