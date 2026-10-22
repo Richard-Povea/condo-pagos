@@ -97,8 +97,8 @@ CREATE TABLE IF NOT EXISTS gc.comprobantes (
     monto_pagado NUMERIC(12, 0) NOT NULL,
     metodo_pago VARCHAR(50) NOT NULL,
     exceso NUMERIC(12, 0) NOT NULL,
-    hash_anterior VARCHAR(64),
-    hash_sha256 VARCHAR(64) NOT NULL,
+    hash_anterior CHAR(64),
+    hash_sha256 CHAR(64) NOT NULL,
     pdf_ruta TEXT,
     datos_json JSONB NOT NULL
 );
