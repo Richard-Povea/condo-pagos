@@ -17,9 +17,9 @@ def _normalizar_sql(value: str) -> str:
     value = re.sub(r"::[a-z_][a-z0-9_.]*", "", value)
     value = re.sub(r"\s+", " ", value)
     value = value.replace("(", " ").replace(")", " ")
-    value = re.sub(r"\s*=\s*", " = ", value)
+    value = re.sub(r"\s*(>=|<=|<>|!=|=)\s*", r" \1 ", value)
     value = re.sub(r"\s*,\s*", ", ", value)
-    return value.strip()
+    return re.sub(r"\s+", " ", value).strip()
 
 
 def _deriva_esquema(connection) -> list[str]:
