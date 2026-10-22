@@ -1,9 +1,12 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text, text
+from sqlalchemy import (
+    Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint,
+    Index, Integer, Numeric, String, Text, UniqueConstraint, text,
+)
 from sqlalchemy import Enum as PgEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
@@ -25,24 +28,28 @@ class UnidadModel(Base):
     condominio_nombre: Mapped[str] = mapped_column(String(255), nullable=False)
     activa: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    __table_args__ = (
+        UniqueConstraint("id", "condominio_id", name="uq_unidades_id_condominio"),
+    )
+
 
 class CargoModel(Base):
     __tablename__ = "cargos"
 
     id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True)
     unidad_id: Mapped[UUID] = mapped_column(
-        PgUUID(as_uuid=True), 
+        PgUUID(as_uuid=True),
         ForeignKey("unidades.id"),
-        nullable=False
-        )
-    periodo: Mapped[str] = mapped_column(String(7), nullable=False)  # Formato YYYY-MM
+        nullable=False,
+    )
+    periodo: Mapped[str] = mapped_column(String(7), nullable=False)
     monto_original: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
     saldo: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
     vencimiento: Mapped[date] = mapped_column(Date, nullable=False)
     estado: Mapped[EstadoCargo] = mapped_column(
         PgEnum(EstadoCargo, name="estado_cargo_enum", create_type=False),
         nullable=False,
-        default=EstadoCargo.PENDIENTE
+        default=EstadoCargo.PENDIENTE,
     )
 
     __table_args__ = (
@@ -55,10 +62,11 @@ class PagoModel(Base):
 
     id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True)
     unidad_id: Mapped[UUID] = mapped_column(
-        PgUUID(as_uuid=True), 
-        ForeignKey("unidades.id"), 
-        nullable=False
-        )
+        PgUUID(as_uuid=True),
+        ForeignKey("unidades.id"),
+        nullable=False,
+    )
+    condominio_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
     metodo_pago: Mapped[str] = mapped_column(String(50), nullable=False)
     referencia: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -70,12 +78,37 @@ class PagoModel(Base):
     estado: Mapped[EstadoPago] = mapped_column(
         PgEnum(EstadoPago, name="estado_pago_enum", create_type=False),
         nullable=False,
-        default=EstadoPago.VIGENTE
+        default=EstadoPago.VIGENTE,
     )
+    anulado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    anulado_por: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    motivo_anulacion: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["unidad_id", "condominio_id"],
+            ["unidades.id", "unidades.condominio_id"],
+            name="fk_pagos_unidad_condominio",
+        ),
+        UniqueConstraint("id", "condominio_id", name="uq_pagos_id_condominio"),
+        CheckConstraint(
+            """(
+                (estado = 'ANULADO'
+                    AND anulado_en IS NOT NULL
+                    AND anulado_por IS NOT NULL
+                    AND length(btrim(motivo_anulacion)) >= 10)
+                OR
+                (estado <> 'ANULADO'
+                    AND anulado_en IS NULL
+                    AND anulado_por IS NULL
+                    AND motivo_anulacion IS NULL)
+            )""",
+            name="ck_pagos_anulacion",
+        ),
         Index(
             "uq_pagos_referencia",
+            "condominio_id",
+            "metodo_pago",
             "referencia",
             unique=True,
             postgresql_where=text("referencia IS NOT NULL AND estado = 'VIGENTE'"),
