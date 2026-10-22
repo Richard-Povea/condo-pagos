@@ -6,7 +6,6 @@ import pytest
 from sqlalchemy import CHAR, DateTime, Enum as SAEnum, Numeric, String, inspect, text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB
 
-from condo_pagos.infrastructure.database.engine import engine
 from condo_pagos.infrastructure.database.models import Base
 from condo_pagos.infrastructure.database.schema import ESQUEMA_VERSION_ESPERADA
 
@@ -266,13 +265,13 @@ def _deriva_esquema(connection) -> list[str]:
     return problemas
 
 
-def test_modelos_coinciden_con_el_esquema() -> None:
+def test_modelos_coinciden_con_el_esquema(engine) -> None:
     with engine.connect() as connection:
         problemas = _deriva_esquema(connection)
     assert not problemas, "\\n".join(problemas)
 
 
-def test_version_de_esquema_instalada() -> None:
+def test_version_de_esquema_instalada(engine) -> None:
     with engine.connect() as connection:
         version = connection.execute(
             text("SELECT version FROM gc.schema_info")
@@ -280,7 +279,7 @@ def test_version_de_esquema_instalada() -> None:
     assert version == ESQUEMA_VERSION_ESPERADA == 2
 
 
-def _mutacion_falla(ddls: str | list[str]) -> None:
+def _mutacion_falla(ddls: str | list[str], engine) -> None:
     sentencias = [ddls] if isinstance(ddls, str) else ddls
     with engine.connect() as connection:
         transaccion = connection.begin()
@@ -293,46 +292,48 @@ def _mutacion_falla(ddls: str | list[str]) -> None:
             transaccion.rollback()
 
 
-def test_deriva_detecta_indice_sin_condominio_id() -> None:
+def test_deriva_detecta_indice_sin_condominio_id(engine) -> None:
     _mutacion_falla([
         "DROP INDEX gc.uq_pagos_referencia",
         "CREATE UNIQUE INDEX uq_pagos_referencia ON gc.pagos (metodo_pago, referencia) "
         "WHERE referencia IS NOT NULL AND estado = 'VIGENTE'",
-    ])
+    ], engine)
 
 
-def test_deriva_detecta_longitud_anulado_por_incorrecta() -> None:
-    _mutacion_falla("ALTER TABLE gc.pagos ALTER COLUMN anulado_por TYPE VARCHAR(100)")
+def test_deriva_detecta_longitud_anulado_por_incorrecta(engine) -> None:
+    _mutacion_falla("ALTER TABLE gc.pagos ALTER COLUMN anulado_por TYPE VARCHAR(100)", engine)
 
 
-def test_deriva_detecta_fecha_date_convertida_a_timestamptz() -> None:
+def test_deriva_detecta_fecha_date_convertida_a_timestamptz(engine) -> None:
     _mutacion_falla(
-        "ALTER TABLE gc.pagos ALTER COLUMN fecha TYPE TIMESTAMPTZ USING fecha::timestamptz"
+        "ALTER TABLE gc.pagos ALTER COLUMN fecha TYPE TIMESTAMPTZ USING fecha::timestamptz",
+        engine,
     )
 
 
-def test_deriva_detecta_fk_compuesta_ausente() -> None:
-    _mutacion_falla("ALTER TABLE gc.pagos DROP CONSTRAINT fk_pagos_unidad_condominio")
+def test_deriva_detecta_fk_compuesta_ausente(engine) -> None:
+    _mutacion_falla("ALTER TABLE gc.pagos DROP CONSTRAINT fk_pagos_unidad_condominio", engine)
 
 
-def test_deriva_detecta_predicado_de_indice_modificado() -> None:
+def test_deriva_detecta_predicado_de_indice_modificado(engine) -> None:
     _mutacion_falla([
         "DROP INDEX gc.uq_pagos_referencia",
         "CREATE UNIQUE INDEX uq_pagos_referencia ON gc.pagos "
         "(condominio_id, metodo_pago, referencia) WHERE referencia IS NOT NULL",
-    ])
+    ], engine)
 
 
-def test_deriva_detecta_nulabilidad_incorrecta() -> None:
-    _mutacion_falla("ALTER TABLE gc.pagos ALTER COLUMN condominio_id DROP NOT NULL")
+def test_deriva_detecta_nulabilidad_incorrecta(engine) -> None:
+    _mutacion_falla("ALTER TABLE gc.pagos ALTER COLUMN condominio_id DROP NOT NULL", engine)
 
 
-def test_deriva_detecta_hash_sha256_que_deja_de_ser_char_64() -> None:
+def test_deriva_detecta_hash_sha256_que_deja_de_ser_char_64(engine) -> None:
     _mutacion_falla(
         "ALTER TABLE gc.comprobantes ALTER COLUMN hash_sha256 TYPE VARCHAR(64) "
-        "USING hash_sha256::varchar(64)"
+        "USING hash_sha256::varchar(64)",
+        engine,
     )
 
 
-def test_deriva_detecta_check_de_anulacion_ausente() -> None:
-    _mutacion_falla("ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_anulacion")
+def test_deriva_detecta_check_de_anulacion_ausente(engine) -> None:
+    _mutacion_falla("ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_anulacion", engine)
