@@ -14,10 +14,19 @@ pytestmark = pytest.mark.integration
 
 def _normalizar_sql(value: str) -> str:
     value = value.lower().replace('"', "")
+    # Quitar casts explícitos de PostgreSQL, incluidos los de enums.
     value = re.sub(r"::[a-z_][a-z0-9_.]*", "", value)
+    # Normalizar espacios antes de tocar operadores.
     value = re.sub(r"\s+", " ", value)
+    # Los paréntesis de agrupación no afectan esta comparación textual.
     value = value.replace("(", " ").replace(")", " ")
+<<<<<<< HEAD
     value = re.sub(r"\s*(>=|<=|<>|!=|=)\s*", r" \1 ", value)
+=======
+    # Normalizar operadores de varios caracteres primero.
+    value = re.sub(r"\s*(>=|<=|<>|!=)\s*", r" \1 ", value)
+    value = re.sub(r"\s*=\s*", " = ", value)
+>>>>>>> 04d7875 (fix(test, esquema cs modelos) Cambia como se normalizan las queries y como se comprueban las fk compuestas)
     value = re.sub(r"\s*,\s*", ", ", value)
     return re.sub(r"\s+", " ", value).strip()
 
@@ -244,23 +253,61 @@ def _deriva_esquema(connection) -> list[str]:
     elif _normalizar_sql(check_db.removeprefix("CHECK ")) != _normalizar_sql(check_modelo):
         problemas.append(f"pagos: pg_get_constraintdef difiere para ck_pagos_anulacion: {check_db}")
 
-    # Comprobar nombre y orden de columnas de la FK compuesta aprobada.
+    
+    # Comprobar columnas, orden y tabla destino de la FK compuesta.
     fk_compuesta = connection.execute(
         text(
             """
-            SELECT conname, pg_get_constraintdef(oid)
-            FROM pg_constraint
-            WHERE conrelid = 'gc.pagos'::regclass
-              AND conname = 'fk_pagos_unidad_condominio'
+            SELECT
+                c.conname,
+                c.confrelid::regclass::text AS tabla_destino,
+                ARRAY(
+                    SELECT a.attname
+                    FROM unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord)
+                    JOIN pg_attribute a
+                    ON a.attrelid = c.conrelid
+                    AND a.attnum = k.attnum
+                    ORDER BY k.ord
+                ) AS columnas_origen,
+                ARRAY(
+                    SELECT a.attname
+                    FROM unnest(c.confkey) WITH ORDINALITY AS k(attnum, ord)
+                    JOIN pg_attribute a
+                    ON a.attrelid = c.confrelid
+                    AND a.attnum = k.attnum
+                    ORDER BY k.ord
+                ) AS columnas_destino
+            FROM pg_constraint c
+            WHERE c.conrelid = 'gc.pagos'::regclass
+            AND c.conname = 'fk_pagos_unidad_condominio'
+            AND c.contype = 'f'
             """
         )
     ).one_or_none()
+
     if fk_compuesta is None:
         problemas.append("pagos: falta fk_pagos_unidad_condominio")
     else:
-        definicion = _normalizar_sql(fk_compuesta[1])
-        if "foreign key unidad_id, condominio_id references gc.unidades id, condominio_id" not in definicion and "foreign key unidad_id, condominio_id references unidades id, condominio_id" not in definicion:
-            problemas.append(f"pagos: definición FK compuesta incorrecta: {fk_compuesta[1]}")
+        _, tabla_destino, columnas_origen, columnas_destino = fk_compuesta
+
+        if columnas_origen != ["unidad_id", "condominio_id"]:
+            problemas.append(
+                f"pagos: columnas de origen incorrectas en FK compuesta: "
+                f"{columnas_origen!r}"
+            )
+
+        if tabla_destino not in ("unidades", "gc.unidades"):
+            problemas.append(
+                f"pagos: tabla destino incorrecta en FK compuesta: "
+                f"{tabla_destino!r}"
+            )
+
+        if columnas_destino != ["id", "condominio_id"]:
+            problemas.append(
+                f"pagos: columnas destino incorrectas en FK compuesta: "
+                f"{columnas_destino!r}"
+            )
+
 
     return problemas
 
