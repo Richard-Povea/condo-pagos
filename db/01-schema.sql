@@ -15,7 +15,7 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- Control de versión del esquema
+-- Control de versión del esquema: v2 no se ha desplegado y solo se usa en desarrollo.
 CREATE TABLE IF NOT EXISTS gc.schema_info (
     version INT NOT NULL
 );
@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS gc.unidades (
     condominio_id UUID NOT NULL,
     codigo VARCHAR(50) NOT NULL,
     condominio_nombre VARCHAR(255) NOT NULL,
-    activa BOOLEAN NOT NULL DEFAULT TRUE
+    activa BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT uq_unidades_id_condominio UNIQUE (id, condominio_id)
 );
 
 CREATE TABLE IF NOT EXISTS gc.cargos (
@@ -48,6 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_cargos_unidad_saldo ON gc.cargos(unidad_id, saldo
 CREATE TABLE IF NOT EXISTS gc.pagos (
     id UUID PRIMARY KEY,
     unidad_id UUID NOT NULL REFERENCES gc.unidades(id),
+    condominio_id UUID NOT NULL,
     monto NUMERIC(12, 0) NOT NULL,
     metodo_pago VARCHAR(50) NOT NULL,
     referencia VARCHAR(100),
@@ -56,14 +58,30 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
     fecha DATE NOT NULL,
     folio VARCHAR(20) NOT NULL,
     exceso NUMERIC(12, 0) NOT NULL DEFAULT 0,
-    estado gc.estado_pago_enum NOT NULL DEFAULT 'VIGENTE'
+    estado gc.estado_pago_enum NOT NULL DEFAULT 'VIGENTE',
+    anulado_en TIMESTAMPTZ,
+    anulado_por VARCHAR(80),
+    motivo_anulacion VARCHAR(300),
+    CONSTRAINT fk_pagos_unidad_condominio
+        FOREIGN KEY (unidad_id, condominio_id)
+        REFERENCES gc.unidades (id, condominio_id),
+    CONSTRAINT uq_pagos_id_condominio UNIQUE (id, condominio_id),
+    CONSTRAINT ck_pagos_anulacion CHECK (
+        (estado = 'ANULADO'
+            AND anulado_en IS NOT NULL
+            AND anulado_por IS NOT NULL
+            AND length(btrim(motivo_anulacion)) >= 10)
+        OR
+        (estado <> 'ANULADO'
+            AND anulado_en IS NULL
+            AND anulado_por IS NULL
+            AND motivo_anulacion IS NULL)
+    )
 );
 
--- La referencia solo debe ser única entre pagos vigentes y no nulos.
-ALTER TABLE gc.pagos DROP CONSTRAINT IF EXISTS uq_pagos_referencia;
-DROP INDEX IF EXISTS gc.uq_pagos_referencia;
+-- La referencia es única por condominio y método, solo entre pagos vigentes.
 CREATE UNIQUE INDEX uq_pagos_referencia
-    ON gc.pagos (referencia)
+    ON gc.pagos (condominio_id, metodo_pago, referencia)
     WHERE referencia IS NOT NULL AND estado = 'VIGENTE';
 
 CREATE TABLE IF NOT EXISTS gc.folios_secuencia (
@@ -85,7 +103,7 @@ CREATE TABLE IF NOT EXISTS gc.comprobantes (
     datos_json JSONB NOT NULL
 );
 
--- Trigger para garantizar la inmutabilidad de los comprobantes
+-- Trigger de inmutabilidad: B no añade estado al comprobante ni permite alterar su snapshot/hash.
 CREATE OR REPLACE FUNCTION gc.fn_prevenir_modificacion_comprobante()
 RETURNS TRIGGER AS $$
 BEGIN
