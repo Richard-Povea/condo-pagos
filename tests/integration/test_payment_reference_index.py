@@ -1,6 +1,6 @@
 """Prueba unicidad por condominio/método, referencias opcionales y pagos anulados."""
 
-from datetime import date
+from datetime import date, datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -147,7 +147,7 @@ def test_fk_compuesta_y_check_de_auditoria_de_anulacion() -> None:
                         connection, pago_id=uuid4(), unidad_id=unidad_id,
                         condominio_id=condominio_id, metodo="EFECTIVO",
                         referencia=None, folio="IDX-ANULADO-SIN-OPERADOR",
-                        estado="ANULADO", anulado_en="2026-10-20T12:00:00Z",
+                        estado="ANULADO", anulado_en=datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc),
                         anulado_por=None, motivo_anulacion="Motivo suficientemente largo",
                     )
 
