@@ -109,16 +109,10 @@ class Pago:
         self.exceso = cuantizar(self.exceso)
 
     def anular(self, *, operador: str, motivo: str) -> None:
-        """Marca el pago como anulado y conserva la auditoría requerida por el esquema."""
+        """Marca el pago como anulado y guarda los datos de auditoría."""
         if self.estado == EstadoPago.ANULADO:
             raise DominioError("El pago ya se encuentra anulado.")
-        operador_limpio = operador.strip()
-        motivo_limpio = motivo.strip()
-        if not operador_limpio or len(operador_limpio) > 80:
-            raise DominioError("El operador de anulación debe tener entre 1 y 80 caracteres.")
-        if len(motivo_limpio) < 10 or len(motivo_limpio) > 300:
-            raise DominioError("El motivo de anulación debe tener entre 10 y 300 caracteres.")
         self.estado = EstadoPago.ANULADO
         self.anulado_en = datetime.now(timezone.utc)
-        self.anulado_por = operador_limpio
-        self.motivo_anulacion = motivo_limpio
+        self.anulado_por = operador.strip()
+        self.motivo_anulacion = motivo.strip()
