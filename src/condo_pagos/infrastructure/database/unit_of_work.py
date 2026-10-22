@@ -148,25 +148,33 @@ class SqlAlchemyPagosRepository(PagosRepository):
             RETURNING condominio_id
             """
         )
-        condominio_id = self.session.execute(
-            stmt,
-            {
-                "id": pago.id,
-                "unidad_id": pago.unidad_id,
-                "monto": pago.monto,
-                "metodo_pago": pago.metodo_pago,
-                "referencia": pago.referencia,
-                "residente_nombre": pago.residente_nombre,
-                "registrado_por": pago.registrado_por,
-                "fecha": pago.fecha,
-                "folio": pago.folio,
-                "exceso": pago.exceso,
-                "estado": pago.estado.value,
-                "anulado_en": pago.anulado_en,
-                "anulado_por": pago.anulado_por,
-                "motivo_anulacion": pago.motivo_anulacion,
-            },
-        ).scalar_one_or_none()
+        try:
+            condominio_id = self.session.execute(
+                stmt,
+                {
+                    "id": pago.id,
+                    "unidad_id": pago.unidad_id,
+                    "monto": pago.monto,
+                    "metodo_pago": pago.metodo_pago,
+                    "referencia": pago.referencia,
+                    "residente_nombre": pago.residente_nombre,
+                    "registrado_por": pago.registrado_por,
+                    "fecha": pago.fecha,
+                    "folio": pago.folio,
+                    "exceso": pago.exceso,
+                    "estado": pago.estado.value,
+                    "anulado_en": pago.anulado_en,
+                    "anulado_por": pago.anulado_por,
+                    "motivo_anulacion": pago.motivo_anulacion,
+                },
+            ).scalar_one_or_none()
+        except IntegrityError as exc:
+            self.session.rollback()
+            if "uq_pagos_referencia" in str(exc.orig):
+                raise DominioError(
+                    "Ya existe un pago registrado con esa referencia, método y condominio."
+                ) from exc
+            raise
         if condominio_id is None:
             raise DominioError(f"La unidad {pago.unidad_id} no existe.")
         pago._establecer_condominio_id(condominio_id)
