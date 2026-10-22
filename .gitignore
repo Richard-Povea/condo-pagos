@@ -15,5 +15,5 @@ wheels/
 # Logs de ejecución (se generan localmente)
 logs/
 
-# output_debug
-output_debug
+# storage
+storage
