@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
-    Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint,
+    Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint,
     Index, Integer, Numeric, String, Text, UniqueConstraint, text,
 )
 from sqlalchemy import Enum as PgEnum
@@ -133,7 +133,7 @@ class ComprobanteModel(Base):
     monto_pagado: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
     metodo_pago: Mapped[str] = mapped_column(String(50), nullable=False)
     exceso: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
-    hash_anterior: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    hash_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    hash_anterior: Mapped[str | None] = mapped_column(CHAR(64), nullable=True)
+    hash_sha256: Mapped[str] = mapped_column(CHAR(64), nullable=False)
     pdf_ruta: Mapped[str | None] = mapped_column(Text, nullable=True)
     datos_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
