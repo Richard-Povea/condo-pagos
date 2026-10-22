@@ -224,6 +224,27 @@ def _deriva_esquema(connection) -> list[str]:
             ):
                 problemas.append(f"pagos: predicado incorrecto en pg_get_indexdef: {indexdef}")
 
+    # Comparación explícita con pg_get_constraintdef para el CHECK de anulación.
+    check_db = connection.execute(
+        text(
+            """
+            SELECT pg_get_constraintdef(oid)
+            FROM pg_constraint
+            WHERE conrelid = 'gc.pagos'::regclass
+              AND conname = 'ck_pagos_anulacion'
+            """
+        )
+    ).scalar_one_or_none()
+    check_modelo = next(
+        str(constraint.sqltext)
+        for constraint in Base.metadata.tables["pagos"].constraints
+        if constraint.name == "ck_pagos_anulacion"
+    )
+    if check_db is None:
+        problemas.append("pagos: falta ck_pagos_anulacion en pg_get_constraintdef")
+    elif _normalizar_sql(check_db.removeprefix("CHECK ")) != _normalizar_sql(check_modelo):
+        problemas.append(f"pagos: pg_get_constraintdef difiere para ck_pagos_anulacion: {check_db}")
+
     # Comprobar nombre y orden de columnas de la FK compuesta aprobada.
     fk_compuesta = connection.execute(
         text(
