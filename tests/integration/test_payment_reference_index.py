@@ -7,7 +7,6 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from condo_pagos.infrastructure.database.engine import engine
 
 pytestmark = pytest.mark.integration
 
@@ -69,7 +68,7 @@ def _insertar_pago(
     )
 
 
-def test_referencias_opcionales_y_unicidad_por_condominio_y_metodo() -> None:
+def test_referencias_opcionales_y_unicidad_por_condominio_y_metodo(engine) -> None:
     unidad_1, unidad_2 = uuid4(), uuid4()
     condominio_1, condominio_2 = uuid4(), uuid4()
     with engine.connect() as connection:
@@ -126,7 +125,7 @@ def test_referencias_opcionales_y_unicidad_por_condominio_y_metodo() -> None:
             transaction.rollback()
 
 
-def test_fk_compuesta_y_check_de_auditoria_de_anulacion() -> None:
+def test_fk_compuesta_y_check_de_auditoria_de_anulacion(engine) -> None:
     unidad_id, condominio_id, otro_condominio = uuid4(), uuid4(), uuid4()
     with engine.connect() as connection:
         transaction = connection.begin()
