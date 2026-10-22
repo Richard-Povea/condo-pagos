@@ -239,7 +239,7 @@ def _deriva_esquema(connection) -> list[str]:
         problemas.append("pagos: falta fk_pagos_unidad_condominio")
     else:
         definicion = _normalizar_sql(fk_compuesta[1])
-        if "foreign key unidad_id, condominio_id references unidades id, condominio_id" not in definicion:
+        if "foreign key unidad_id, condominio_id references gc.unidades id, condominio_id" not in definicion and "foreign key unidad_id, condominio_id references unidades id, condominio_id" not in definicion:
             problemas.append(f"pagos: definición FK compuesta incorrecta: {fk_compuesta[1]}")
 
     return problemas
@@ -259,23 +259,25 @@ def test_version_de_esquema_instalada() -> None:
     assert version == ESQUEMA_VERSION_ESPERADA == 2
 
 
-def _mutacion_falla(ddl: str) -> None:
+def _mutacion_falla(ddls: str | list[str]) -> None:
+    sentencias = [ddls] if isinstance(ddls, str) else ddls
     with engine.connect() as connection:
         transaccion = connection.begin()
         try:
-            connection.execute(text(ddl))
+            for ddl in sentencias:
+                connection.execute(text(ddl))
             problemas = _deriva_esquema(connection)
-            assert problemas, f"La deriva no detectó la mutación: {ddl}"
+            assert problemas, f"La deriva no detectó la mutación: {sentencias}"
         finally:
             transaccion.rollback()
 
 
 def test_deriva_detecta_indice_sin_condominio_id() -> None:
-    _mutacion_falla(
-        "DROP INDEX gc.uq_pagos_referencia; "
+    _mutacion_falla([
+        "DROP INDEX gc.uq_pagos_referencia",
         "CREATE UNIQUE INDEX uq_pagos_referencia ON gc.pagos (metodo_pago, referencia) "
-        "WHERE referencia IS NOT NULL AND estado = 'VIGENTE'"
-    )
+        "WHERE referencia IS NOT NULL AND estado = 'VIGENTE'",
+    ])
 
 
 def test_deriva_detecta_longitud_anulado_por_incorrecta() -> None:
@@ -284,7 +286,7 @@ def test_deriva_detecta_longitud_anulado_por_incorrecta() -> None:
 
 def test_deriva_detecta_fecha_date_convertida_a_timestamptz() -> None:
     _mutacion_falla(
-        "ALTER TABLE gc.pagos ALTER COLUMN fecha TYPE TIMESTAMPTZ USING fecha::timestamp with time zone"
+        "ALTER TABLE gc.pagos ALTER COLUMN fecha TYPE TIMESTAMPTZ USING fecha::timestamptz"
     )
 
 
@@ -293,8 +295,8 @@ def test_deriva_detecta_fk_compuesta_ausente() -> None:
 
 
 def test_deriva_detecta_predicado_de_indice_modificado() -> None:
-    _mutacion_falla(
-        "DROP INDEX gc.uq_pagos_referencia; "
+    _mutacion_falla([
+        "DROP INDEX gc.uq_pagos_referencia",
         "CREATE UNIQUE INDEX uq_pagos_referencia ON gc.pagos "
-        "(condominio_id, metodo_pago, referencia) WHERE referencia IS NOT NULL"
-    )
+        "(condominio_id, metodo_pago, referencia) WHERE referencia IS NOT NULL",
+    ])
