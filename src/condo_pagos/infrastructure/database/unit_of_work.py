@@ -120,26 +120,56 @@ class SqlAlchemyPagosRepository(PagosRepository):
         self.session = session
 
     def guardar(self, pago: Pago) -> None:
-        # Estándar: upsert basado en session.get() por ID
         model = self.session.get(PagoModel, pago.id)
         if model:
             model.estado = pago.estado
             model.exceso = pago.exceso
-        else:
-            new_model = PagoModel(
-                id=pago.id,
-                unidad_id=pago.unidad_id,
-                monto=pago.monto,
-                metodo_pago=pago.metodo_pago,
-                referencia=pago.referencia,
-                residente_nombre=pago.residente_nombre,
-                registrado_por=pago.registrado_por,
-                fecha=pago.fecha,
-                folio=pago.folio,
-                exceso=pago.exceso,
-                estado=pago.estado,
+            model.anulado_en = pago.anulado_en
+            model.anulado_por = pago.anulado_por
+            model.motivo_anulacion = pago.motivo_anulacion
+            pago._establecer_condominio_id(model.condominio_id)
+            return
+
+        # El condominio se obtiene desde unidades dentro del mismo INSERT.
+        # No se acepta ese dato desde la UI ni desde RegistrarPagoCmd.
+        stmt = text(
+            """
+            INSERT INTO gc.pagos (
+                id, unidad_id, condominio_id, monto, metodo_pago, referencia,
+                residente_nombre, registrado_por, fecha, folio, exceso, estado,
+                anulado_en, anulado_por, motivo_anulacion
             )
-            self.session.add(new_model)
+            SELECT
+                :id, u.id, u.condominio_id, :monto, :metodo_pago, :referencia,
+                :residente_nombre, :registrado_por, :fecha, :folio, :exceso, :estado,
+                :anulado_en, :anulado_por, :motivo_anulacion
+            FROM gc.unidades AS u
+            WHERE u.id = :unidad_id
+            RETURNING condominio_id
+            """
+        )
+        condominio_id = self.session.execute(
+            stmt,
+            {
+                "id": pago.id,
+                "unidad_id": pago.unidad_id,
+                "monto": pago.monto,
+                "metodo_pago": pago.metodo_pago,
+                "referencia": pago.referencia,
+                "residente_nombre": pago.residente_nombre,
+                "registrado_por": pago.registrado_por,
+                "fecha": pago.fecha,
+                "folio": pago.folio,
+                "exceso": pago.exceso,
+                "estado": pago.estado.value,
+                "anulado_en": pago.anulado_en,
+                "anulado_por": pago.anulado_por,
+                "motivo_anulacion": pago.motivo_anulacion,
+            },
+        ).scalar_one_or_none()
+        if condominio_id is None:
+            raise DominioError(f"La unidad {pago.unidad_id} no existe.")
+        pago._establecer_condominio_id(condominio_id)
 
     def obtener_por_id(self, pago_id: UUID) -> Pago | None:
         model = self.session.get(PagoModel, pago_id)
@@ -157,23 +187,42 @@ class SqlAlchemyPagosRepository(PagosRepository):
             folio=model.folio,
             exceso=model.exceso,
             estado=EstadoPago(model.estado),
+            anulado_en=model.anulado_en,
+            anulado_por=model.anulado_por,
+            motivo_anulacion=model.motivo_anulacion,
         )
     
-    def existe_por_referencia(self, referencia: str | None) -> bool:
+    def existe_por_referencia(
+        self, referencia: str | None, condominio_id: UUID, metodo_pago: str
+    ) -> bool:
         if referencia is None:
             return False
         stmt = text(
-            "SELECT 1 FROM pagos WHERE referencia = :referencia AND estado = 'VIGENTE'"
+            """
+            SELECT 1 FROM gc.pagos
+            WHERE condominio_id = :condominio_id
+              AND metodo_pago = :metodo_pago
+              AND referencia = :referencia
+              AND estado = 'VIGENTE'
+            """
         )
-        res = self.session.execute(stmt, {"referencia": referencia}).fetchone()
+        res = self.session.execute(
+            stmt,
+            {
+                "referencia": referencia,
+                "condominio_id": condominio_id,
+                "metodo_pago": metodo_pago,
+            },
+        ).fetchone()
         return res is not None
 
     def listar_recientes_por_unidad(self, unidad_id: UUID, limite: int = 10) -> list[Pago]:
         stmt = text(
             """
             SELECT id, unidad_id, monto, metodo_pago, referencia, 
-                   residente_nombre, registrado_por, fecha, folio, exceso, estado
-            FROM pagos
+                   residente_nombre, registrado_por, fecha, folio, exceso, estado,
+                   anulado_en, anulado_por, motivo_anulacion
+            FROM gc.pagos
             WHERE unidad_id = :unidad_id
             ORDER BY fecha DESC
             LIMIT :limite
@@ -193,6 +242,9 @@ class SqlAlchemyPagosRepository(PagosRepository):
                 folio=row.folio,
                 exceso=row.exceso,
                 estado=EstadoPago(row.estado),
+                anulado_en=row.anulado_en,
+                anulado_por=row.anulado_por,
+                motivo_anulacion=row.motivo_anulacion,
             )
             for row in result
         ]
