@@ -30,6 +30,7 @@ dev = [
     "import-linter>=2",
     "alembic>=1.13",
     "pytest-repeat>=0.9.4",
+    "pytest-randomly>=3.15",
 ]
 
 [build-system]
