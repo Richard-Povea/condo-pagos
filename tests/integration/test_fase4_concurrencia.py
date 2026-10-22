@@ -11,6 +11,7 @@ from condo_pagos.domain.entities import Cargo, EstadoCargo
 from condo_pagos.domain.errors import DominioError
 from condo_pagos.infrastructure.database.bootstrap import ESQUEMA_VERSION_ESPERADA
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
+from seed_ids import PAGO_SEMILLA_SIN_REFERENCIA
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
 from condo_pagos.use_cases.dto import RegistrarPagoCmd
 from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
@@ -249,7 +250,7 @@ def test_8_plantilla_contiene_esquema_v2_y_seeds(engine):
             text("SELECT version FROM gc.schema_info")
         ).scalar_one()
         pago_semilla = connection.execute(
-            text("SELECT 1 FROM gc.pagos WHERE id = '44444444-4444-4444-4444-444444444444'")
+            text("SELECT 1 FROM gc.pagos WHERE id = :pago_id"), {"pago_id": PAGO_SEMILLA_SIN_REFERENCIA}
         ).scalar_one_or_none()
 
     assert version == ESQUEMA_VERSION_ESPERADA
