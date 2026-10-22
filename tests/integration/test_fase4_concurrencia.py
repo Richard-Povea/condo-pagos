@@ -235,7 +235,11 @@ def test_7_anulacion_restaura_saldos(uow):
 
     # Anular pago
     caso_uso_anular = AnularPagoUseCase(uow)
-    caso_uso_anular.ejecutar(pago_db.id)
+    caso_uso_anular.ejecutar(
+        pago_db.id,
+        operador="OPERADOR_TEST",
+        motivo="Anulación de prueba para verificar restauración de saldos",
+    )
 
     # Verificar que tras la anulación el saldo del cargo volvió a 50000 y aparece como pendiente
     pendientes_despues = uow.cargos.obtener_pendientes_por_unidad(unidad_id)
@@ -250,7 +254,8 @@ def test_8_plantilla_contiene_esquema_v2_y_seeds(engine):
             text("SELECT version FROM gc.schema_info")
         ).scalar_one()
         pago_semilla = connection.execute(
-            text("SELECT 1 FROM gc.pagos WHERE id = :pago_id"), {"pago_id": PAGO_SEMILLA_SIN_REFERENCIA}
+            text("SELECT 1 FROM gc.pagos WHERE id = :pago_id"),
+            {"pago_id": PAGO_SEMILLA_SIN_REFERENCIA},
         ).scalar_one_or_none()
 
     assert version == ESQUEMA_VERSION_ESPERADA
