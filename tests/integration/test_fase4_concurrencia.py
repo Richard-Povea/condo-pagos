@@ -55,8 +55,8 @@ def test_1_folios_concurrentes(uow, session_local):  # <-- Asegúrate de recibir
     
     # Preparar todas las unidades y cargos de forma síncrona y limpia
     for i in range(6):
-        with SqlAlchemyUnitOfWork(session_local) as uow_prep:
-            _crear_unidad_y_cargo(uow_prep, unidades[i], cargos[i], codigo=str(200 + i))
+        uow_prep = SqlAlchemyUnitOfWork(session_local)
+        _crear_unidad_y_cargo(uow_prep, unidades[i], cargos[i], codigo=str(200 + i))
 
     def realizar_pago(idx):
         # Cada hilo abre su propia UoW independiente
