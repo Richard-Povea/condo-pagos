@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from datetime import date
+from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
@@ -89,13 +89,36 @@ class Pago:
     registrado_por: str
     exceso: Decimal = Decimal("0")
     estado: EstadoPago = EstadoPago.VIGENTE
+    anulado_en: datetime | None = None
+    anulado_por: str | None = None
+    motivo_anulacion: str | None = None
+    _condominio_id: UUID | None = field(default=None, init=False, repr=False, compare=False)
+
+    @property
+    def condominio_id(self) -> UUID | None:
+        """Condominio determinado por la base de datos; no se acepta desde el comando."""
+        return self._condominio_id
+
+    def _establecer_condominio_id(self, condominio_id: UUID) -> None:
+        if self._condominio_id is not None and self._condominio_id != condominio_id:
+            raise DominioError("No se puede cambiar el condominio asociado al pago.")
+        self._condominio_id = condominio_id
 
     def __post_init__(self) -> None:
         self.monto = cuantizar(self.monto)
         self.exceso = cuantizar(self.exceso)
 
-    def anular(self) -> None:
-        """Marca el pago como anulado."""
+    def anular(self, *, operador: str, motivo: str) -> None:
+        """Marca el pago como anulado y conserva la auditoría requerida por el esquema."""
         if self.estado == EstadoPago.ANULADO:
             raise DominioError("El pago ya se encuentra anulado.")
+        operador_limpio = operador.strip()
+        motivo_limpio = motivo.strip()
+        if not operador_limpio or len(operador_limpio) > 80:
+            raise DominioError("El operador de anulación debe tener entre 1 y 80 caracteres.")
+        if len(motivo_limpio) < 10 or len(motivo_limpio) > 300:
+            raise DominioError("El motivo de anulación debe tener entre 10 y 300 caracteres.")
         self.estado = EstadoPago.ANULADO
+        self.anulado_en = datetime.now(timezone.utc)
+        self.anulado_por = operador_limpio
+        self.motivo_anulacion = motivo_limpio
