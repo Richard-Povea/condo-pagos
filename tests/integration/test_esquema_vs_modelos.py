@@ -300,3 +300,14 @@ def test_deriva_detecta_predicado_de_indice_modificado() -> None:
         "CREATE UNIQUE INDEX uq_pagos_referencia ON gc.pagos "
         "(condominio_id, metodo_pago, referencia) WHERE referencia IS NOT NULL",
     ])
+
+
+def test_deriva_detecta_nulabilidad_incorrecta() -> None:
+    _mutacion_falla("ALTER TABLE gc.pagos ALTER COLUMN condominio_id DROP NOT NULL")
+
+
+def test_deriva_detecta_hash_sha256_que_deja_de_ser_char_64() -> None:
+    _mutacion_falla(
+        "ALTER TABLE gc.comprobantes ALTER COLUMN hash_sha256 TYPE VARCHAR(64) "
+        "USING hash_sha256::varchar(64)"
+    )
