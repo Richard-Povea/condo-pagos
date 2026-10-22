@@ -10,7 +10,6 @@ from sqlalchemy.exc import IntegrityError
 from condo_pagos.domain.entities import Cargo, EstadoCargo
 from condo_pagos.domain.errors import DominioError
 from condo_pagos.infrastructure.database.bootstrap import ESQUEMA_VERSION_ESPERADA
-from condo_pagos.infrastructure.database.engine import SessionLocal
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
 from condo_pagos.use_cases.dto import RegistrarPagoCmd
@@ -18,22 +17,6 @@ from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
 
 pytestmark = pytest.mark.integration
 
-
-@pytest.fixture
-def uow():
-    uow_instance = SqlAlchemyUnitOfWork(SessionLocal)
-    with uow_instance:
-        # Limpiar todas las tablas incluyendo folios_secuencia y reiniciar contadores
-        tables = "gc.comprobantes, gc.pagos, gc.cargos, gc.unidades, gc.folios_secuencia"
-        uow_instance.session.execute(
-            text(
-                f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"
-                )
-        )
-        uow_instance.commit()
-    
-    yield uow_instance
-    
 
 def _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"), codigo="101"):
     with uow:
@@ -64,19 +47,19 @@ def _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"), codi
         uow.commit()
 
 
-def test_1_folios_concurrentes(uow):  # <-- Asegúrate de recibir la uow del fixture aquí
+def test_1_folios_concurrentes(uow, session_local):  # <-- Asegúrate de recibir la uow del fixture aquí
     """6 hilos pagando en distintas unidades producen folios [1..6] sin huecos ni duplicados."""
     unidades = [uuid4() for _ in range(6)]
     cargos = [uuid4() for _ in range(6)]
     
     # Preparar todas las unidades y cargos de forma síncrona y limpia
     for i in range(6):
-        with SqlAlchemyUnitOfWork(SessionLocal) as uow_prep:
+        with SqlAlchemyUnitOfWork(session_local) as uow_prep:
             _crear_unidad_y_cargo(uow_prep, unidades[i], cargos[i], codigo=str(200 + i))
 
     def realizar_pago(idx):
         # Cada hilo abre su propia UoW independiente
-        with SqlAlchemyUnitOfWork(SessionLocal) as uow_hilo:
+        with SqlAlchemyUnitOfWork(session_local) as uow_hilo:
             caso_uso = RegistrarPagoUseCase(uow_hilo)
             cmd = RegistrarPagoCmd(
                 unidad_id=unidades[idx],
@@ -102,15 +85,15 @@ def test_1_folios_concurrentes(uow):  # <-- Asegúrate de recibir la uow del fix
         assert f.startswith(anio_actual)
 
 
-def test_2_doble_pago_simultaneo_misma_unidad():
+def test_2_doble_pago_simultaneo_misma_unidad(session_local):
     """Doble pago simultáneo en la misma unidad: el segundo falla porque FOR UPDATE serializa."""
     unidad_id = uuid4()
     cargo_id = uuid4()
-    uow_prep = SqlAlchemyUnitOfWork(SessionLocal)
+    uow_prep = SqlAlchemyUnitOfWork(session_local)
     _crear_unidad_y_cargo(uow_prep, unidad_id, cargo_id, monto=Decimal("50000"), codigo="301")
 
     def intentar_pago(ref):
-        uow = SqlAlchemyUnitOfWork(SessionLocal)
+        uow = SqlAlchemyUnitOfWork(session_local)
         caso_uso = RegistrarPagoUseCase(uow)
         cmd = RegistrarPagoCmd(
             unidad_id=unidad_id,
@@ -259,8 +242,15 @@ def test_7_anulacion_restaura_saldos(uow):
     assert pendientes_despues[0].saldo == Decimal("50000")
 
 
-def test_8_esquema_desde_cero():
-    """En una BD vacía, verificar versión de schema_info."""
-    with SessionLocal() as session:
-        version = session.execute(text("SELECT version FROM gc.schema_info")).scalar_one()
-        assert version == ESQUEMA_VERSION_ESPERADA
+def test_8_plantilla_contiene_esquema_v2_y_seeds(engine):
+    """La base clonada contiene la versión esperada y los seeds de contrato."""
+    with engine.connect() as connection:
+        version = connection.execute(
+            text("SELECT version FROM gc.schema_info")
+        ).scalar_one()
+        pago_semilla = connection.execute(
+            text("SELECT 1 FROM gc.pagos WHERE id = '44444444-4444-4444-4444-444444444444'")
+        ).scalar_one_or_none()
+
+    assert version == ESQUEMA_VERSION_ESPERADA
+    assert pago_semilla == 1
