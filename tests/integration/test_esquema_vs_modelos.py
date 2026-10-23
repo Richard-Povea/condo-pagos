@@ -13,20 +13,18 @@ pytestmark = pytest.mark.integration
 
 
 def _normalizar_sql(value: str) -> str:
-    value = value.lower().replace('"', "")
-    # Quitar casts explícitos de PostgreSQL, incluidos los de enums.
-    value = re.sub(r"::[a-z_][a-z0-9_.]*", "", value)
-    # Normalizar espacios antes de tocar operadores.
     value = re.sub(r"\s+", " ", value)
     # Los paréntesis de agrupación no afectan esta comparación textual.
     value = value.replace("(", " ").replace(")", " ")
-<<<<<<< HEAD
-    value = re.sub(r"\s*(>=|<=|<>|!=|=)\s*", r" \1 ", value)
-=======
-    # Normalizar operadores de varios caracteres primero.
+
+    # Normalizar operadores de varios caracteres antes de "=".
     value = re.sub(r"\s*(>=|<=|<>|!=)\s*", r" \1 ", value)
     value = re.sub(r"\s*=\s*", " = ", value)
->>>>>>> 04d7875 (fix(test, esquema cs modelos) Cambia como se normalizan las queries y como se comprueban las fk compuestas)
+
+    # Simplificar conversiones de tipos que PostgreSQL agrega al mostrar
+    # las definiciones de restricciones e índices.
+    value = re.sub(r"::[a-zA-Z_][a-zA-Z0-9_]*(?:\[\])?", "", value)
+
     value = re.sub(r"\s*,\s*", ", ", value)
     return re.sub(r"\s+", " ", value).strip()
 
