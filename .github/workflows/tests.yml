@@ -48,7 +48,7 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -c 'ALTER DATABASE condo_test WITH ALLOW_CONNECTIONS false'
       - name: Suite con orden aleatorio (semilla 1)
-        run: uv run --python 3.13 pytest --randomly-seed=20261022
+        run: uv run --python 3.13 pytest --durations=20 --randomly-seed=20261022
       - name: Suite con orden aleatorio (semilla 2)
         run: uv run --python 3.13 pytest --randomly-seed=781234
       - name: Suite con tres semillas aleatorias adicionales
@@ -58,11 +58,11 @@ jobs:
           done
       - name: Reproducir secuencia seeds-concurrencia-seeds
         run: |
-          uv run --python 3.13 pytest tests/integration/test_seeds_esquema.py -q
-          uv run --python 3.13 pytest tests/integration/test_fase4_concurrencia.py -q
+          uv run --python 3.13 pytest --durations=20 tests/integration/test_seeds_esquema.py -q
+          uv run --python 3.13 pytest --durations=20 tests/integration/test_fase4_concurrencia.py -q
           uv run --python 3.13 pytest tests/integration/test_seeds_esquema.py -q
       - name: Repetir pruebas de concurrencia 20 veces
-        run: uv run --python 3.13 pytest tests/integration/test_fase4_concurrencia.py --count=20 --randomly-seed=781234
+        run: uv run --python 3.13 pytest --durations=20 tests/integration/test_fase4_concurrencia.py --count=20 --randomly-seed=781234
       - name: Ejecutar cada archivo de integración por separado
         run: |
           for file in \
@@ -73,7 +73,7 @@ jobs:
             tests/integration/test_repositorios_integration.py \
             tests/integration/test_seeds_esquema.py \
             tests/e2e/test_smoke.py; do
-            uv run --python 3.13 pytest "$file" -q
+            uv run --python 3.13 pytest --durations=20 "$file" -q
           done
       - name: Verificar que no queden bases temporales
         run: |
