@@ -12,7 +12,9 @@ class Settings(BaseSettings):
     pdf_dir: Path = Path("./storage/pdfs")
 
     model_config = SettingsConfigDict(
-        env_file=".env", extra="ignore"
+        env_file=".env",
+        env_prefix="CONDO_",
+        extra="ignore",
     )
 
 
