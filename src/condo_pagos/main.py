@@ -46,10 +46,11 @@ def _crear_container(modo_demo: bool) -> UiContainer:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Arranca la UI y coordina el contenedor y el ciclo de eventos."""
+    """Arranca la UI y libera los recursos del contenedor al finalizar."""
     args = _crear_parser().parse_args(argv)
     app: QApplication | None = None
     log_path = None
+    container: UiContainer | None = None
 
     try:
         app, log_path = crear_aplicacion(
@@ -96,6 +97,12 @@ def main(argv: list[str] | None = None) -> int:
                 f"Se guardó el detalle técnico en:\n{ruta}",
             )
         raise
+    finally:
+        if container is not None:
+            try:
+                container.cerrar()
+            except Exception:
+                log.exception("No se pudieron liberar todos los recursos del contenedor")
 
 
 if __name__ == "__main__":
