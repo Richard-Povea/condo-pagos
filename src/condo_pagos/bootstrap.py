@@ -63,7 +63,10 @@ def build_container(settings: Settings | None = None) -> Container:
     try:
         verificar_schema_info(engine)
         session_factory = crear_session_factory(engine)
-        uow_factory = lambda: SqlAlchemyUnitOfWork(session_factory)
+
+        def uow_factory() -> SqlAlchemyUnitOfWork:
+            return SqlAlchemyUnitOfWork(session_factory)
+
         return Container(
             engine=engine,
             uow_factory=uow_factory,
