@@ -6,14 +6,15 @@ import logging
 import os
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy import Engine
+from sqlalchemy.orm import Session, sessionmaker
 
 from condo_pagos.config import Settings
+from condo_pagos.infrastructure.database.engine import crear_engine, crear_session_factory
 from condo_pagos.infrastructure.database.payment_operations import OperacionesPagoPostgres
 from condo_pagos.infrastructure.database.queries import ConsultasPostgres
 from condo_pagos.infrastructure.database.schema import verificar_esquema
@@ -33,31 +34,28 @@ class PostgresContainer:
     nombre_condominio = "Condominio Principal"
 
     def __init__(self, settings: Settings) -> None:
-        self._engine = create_engine(
-            settings.condo_database_url,
-            pool_pre_ping=True,
-            future=True,
-            connect_args={
-                "connect_timeout": 5,
-                "options": "-c search_path=gc,public",
-            },
-            poolclass=NullPool,
-        )
+        self._engine: Engine = crear_engine(settings.condo_database_url)
+        self._session_factory: sessionmaker[Session] = crear_session_factory(self._engine)
         log.info(
             "Configurando conexión PostgreSQL: %s",
             self._engine.url.render_as_string(hide_password=True),
         )
-        self._session_factory = sessionmaker(
-            bind=self._engine, expire_on_commit=False, future=True
-        )
         self._consultas = ConsultasPostgres(self._session_factory)
         self._uow_factory = lambda: SqlAlchemyUnitOfWork(self._session_factory)
-        self._pdf_dir = settings.pdf_dir
+        self._pdf_dir: Path = settings.pdf_dir
         self._operaciones_pago = OperacionesPagoPostgres(
             self._session_factory, self._uow_factory, self._pdf_dir
         )
-        verificar_esquema(self._engine)
-        self._verificar_directorio_pdf()
+        try:
+            verificar_esquema(self._engine)
+            self._verificar_directorio_pdf()
+        except Exception:
+            self._engine.dispose()
+            raise
+
+    def cerrar(self) -> None:
+        """Libera las conexiones del engine cuando termina el ciclo de vida del contenedor."""
+        self._engine.dispose()
 
     def _verificar_directorio_pdf(self) -> None:
         """Advierte si no se pueden guardar comprobantes, sin bloquear pagos."""
