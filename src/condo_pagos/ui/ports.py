@@ -59,3 +59,7 @@ class UiContainer(ConsultasPort, RegistrarPagoPort, PagosPort, Protocol):
     """Contrato agregado que deben satisfacer los contenedores demo y real."""
 
     nombre_condominio: str
+
+    def cerrar(self) -> None:
+        """Libera los recursos externos del contenedor, si los tiene."""
+        ...
