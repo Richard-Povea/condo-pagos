@@ -4,7 +4,7 @@ from PySide6.QtCore import QThreadPool
 from condo_pagos.ui.ports import UiContainer
 from condo_pagos.ui.services.configuracion import ConfiguracionLocal
 from condo_pagos.ui.services.navegacion import ServicioNavegacion
-from condo_pagos.ui.services.real import AbridorArchivosReal, ServicioDialogosReal
+from condo_pagos.ui.services.real import AbridorArchivosReal
 from condo_pagos.ui.viewmodels.pagos_vm import PagosViewModel
 from condo_pagos.ui.viewmodels.registrar_pago_vm import RegistrarPagoViewModel
 from condo_pagos.ui.viewmodels.unidades_vm import UnidadesViewModel
@@ -16,7 +16,6 @@ from condo_pagos.ui.views.unidades_view import UnidadesView
 
 def crear_ventana(container: UiContainer, config: ConfiguracionLocal) -> MainWindow:
     nav = ServicioNavegacion()
-    dialogos = ServicioDialogosReal()
     abridor = AbridorArchivosReal()
 
     # Instanciación de ViewModels conectando servicios y casos de uso
@@ -25,7 +24,7 @@ def crear_ventana(container: UiContainer, config: ConfiguracionLocal) -> MainWin
         consultar_estado_uc=container.consultar_estado_cuenta,
         registrar_pago_uc=container.registrar_pago,
     )
-    
+
     unidades_vm = UnidadesViewModel(
         listar_unidades_uc=container.listar_unidades,
         consultar_estado_uc=container.consultar_estado_cuenta,
@@ -46,8 +45,8 @@ def crear_ventana(container: UiContainer, config: ConfiguracionLocal) -> MainWin
 
     paginas = {
         "registrar_pago": ("Registrar pago", RegistrarPagoView(registrar_vm)),
-        "unidades":       ("Unidades",       UnidadesView(unidades_vm)),
-        "pagos":          ("Pagos",          PagosView(pagos_vm)),
+        "unidades": ("Unidades", UnidadesView(unidades_vm)),
+        "pagos": ("Pagos", PagosView(pagos_vm)),
     }
 
     vms = (registrar_vm, unidades_vm, pagos_vm)
