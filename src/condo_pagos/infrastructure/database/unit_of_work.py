@@ -201,7 +201,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
         )
         pago._establecer_condominio_id(model.condominio_id)
         return pago
-    
+
     def existe_por_referencia(
         self, referencia: str | None, condominio_id: UUID, metodo_pago: str
     ) -> bool:
@@ -318,9 +318,8 @@ class SqlAlchemyComprobantesRepository(ComprobantesRepository):
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
-    def __init__(self, session_factory: Callable[[], Session] | None = None) -> None:
-        from condo_pagos.infrastructure.database.engine import SessionLocal
-        self.session_factory = session_factory or SessionLocal
+    def __init__(self, session_factory: Callable[[], Session]) -> None:
+        self.session_factory = session_factory
 
     def __enter__(self) -> "SqlAlchemyUnitOfWork":
         self.session: Session = self.session_factory()
