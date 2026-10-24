@@ -28,7 +28,7 @@ jobs:
           --health-retries 20
     env:
       CONDO_TEST_DATABASE_URL: postgresql+psycopg://condo_test:condo_test_pw@localhost:5432/condo_test
-      DATABASE_URL: postgresql+psycopg://condo_test:condo_test_pw@localhost:5432/condo_test
+      CONDO_DATABASE_URL: postgresql+psycopg://x:x@localhost:1/prohibida
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -42,6 +42,11 @@ jobs:
           sudo apt-get install -y libegl1 libgl1 libxkbcommon-x11-0 libdbus-1-3 libxcb-cursor0
       - name: Instalar dependencias
         run: uv sync --python 3.13 --group dev
+      - name: Bloquear la base compartida para demostrar aislamiento
+        run: |
+          PGPASSWORD=condo_test_pw psql "host=localhost port=5432 dbname=postgres user=condo_test" \
+            -v ON_ERROR_STOP=1 \
+            -c 'ALTER DATABASE condo_test WITH ALLOW_CONNECTIONS false'
       - name: Suite con orden aleatorio (semilla 1)
         run: uv run --python 3.13 pytest --randomly-seed=20261022
       - name: Suite con orden aleatorio (semilla 2)
@@ -73,3 +78,15 @@ jobs:
       - name: Verificar que no queden bases temporales
         run: |
           uv run --python 3.13 python -c "import os; from sqlalchemy import create_engine, text; from sqlalchemy.engine import make_url; e=create_engine(make_url(os.environ['CONDO_TEST_DATABASE_URL']).set(database='postgres')); c=e.connect(); names=c.execute(text(\"SELECT datname FROM pg_database WHERE datname LIKE 'condo_t_%' OR datname LIKE 'condo_plantilla_%'\")).scalars().all(); c.close(); e.dispose(); print('Bases temporales restantes:', names); assert not names"
+      - name: Verificar Ruff
+        run: uv run --python 3.13 ruff check .
+      - name: Verificar tipos estrictos
+        run: uv run --python 3.13 mypy --strict src
+      - name: Verificar límites de arquitectura
+        run: uv run --python 3.13 lint-imports
+      - name: Restaurar conexiones a la base compartida
+        if: always()
+        run: |
+          PGPASSWORD=condo_test_pw psql "host=localhost port=5432 dbname=postgres user=condo_test" \
+            -v ON_ERROR_STOP=1 \
+            -c 'ALTER DATABASE condo_test WITH ALLOW_CONNECTIONS true'
