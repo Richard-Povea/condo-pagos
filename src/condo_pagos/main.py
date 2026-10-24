@@ -35,7 +35,7 @@ def _crear_container(modo_demo: bool) -> UiContainer:
     # Los imports diferidos mantienen la composición fuera de la capa UI.
     try:
         from condo_pagos.config import Settings
-        from condo_pagos.infrastructure.bootstrap import build_container
+        from condo_pagos.bootstrap import build_container
     except ImportError as exc:
         raise RuntimeError(
             "El contenedor de PostgreSQL todavía no está implementado. "
