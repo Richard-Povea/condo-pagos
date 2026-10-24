@@ -2,8 +2,8 @@
 
 import pytest
 
-from condo_pagos.config import Settings
 from condo_pagos.bootstrap import build_container
+from condo_pagos.config import Settings
 
 
 @pytest.mark.integration
