@@ -77,3 +77,15 @@ name = "Dominio y casos de uso no conocen frameworks"
 type = "forbidden"
 source_modules = ["condo_pagos.domain", "condo_pagos.use_cases"]
 forbidden_modules = ["PySide6", "sqlalchemy", "psycopg", "reportlab"]
+
+[[tool.importlinter.contracts]]
+name = "La raíz de composición solo la importa main y los tests"
+type = "forbidden"
+source_modules = ["condo_pagos.ui", "condo_pagos.domain", "condo_pagos.use_cases"]
+forbidden_modules = ["condo_pagos.bootstrap"]
+
+[[tool.importlinter.contracts]]
+name = "La UI no importa infraestructura; consume contratos y ViewModels"
+type = "forbidden"
+source_modules = ["condo_pagos.ui.views", "condo_pagos.ui.components"]
+forbidden_modules = ["condo_pagos.infrastructure", "condo_pagos.bootstrap"]
