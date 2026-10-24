@@ -58,12 +58,13 @@ def _deriva_esquema(connection) -> list[str]:
                 if not isinstance(tipo_db, ENUM):
                     problemas.append(f"{tabla.name}.{nombre}: modelo ENUM vs BD {tipo_db!r}")
                 elif (
-                    tipo_modelo.name != tipo_db.name or 
-                    list(tipo_modelo.enums) != list(tipo_db.enums)
-                    ):
+                    tipo_modelo.name != tipo_db.name
+                    or list(tipo_modelo.enums) != list(tipo_db.enums)
+                ):
                     problemas.append(
                         f"{tabla.name}.{nombre}: enum modelo ({tipo_modelo.name}, "
-                        f"{list(tipo_modelo.enums)!r}) vs BD ({tipo_db.name}, {list(tipo_db.enums)!r})"
+                        f"{list(tipo_modelo.enums)!r}) vs BD "
+                        f"({tipo_db.name}, {list(tipo_db.enums)!r})"
                     )
             else:
                 try:
@@ -106,7 +107,8 @@ def _deriva_esquema(connection) -> list[str]:
                 zona_db = getattr(tipo_db, "timezone", None)
                 if zona_modelo != zona_db:
                     problemas.append(
-                        f"{tabla.name}.{nombre}: timezone modelo {zona_modelo!r} vs BD {zona_db!r}"
+                        f"{tabla.name}.{nombre}: timezone modelo {zona_modelo!r} "
+                        f"vs BD {zona_db!r}"
                     )
 
             if columna_modelo.nullable != columna_db["nullable"]:
@@ -204,10 +206,14 @@ def _deriva_esquema(connection) -> list[str]:
             where_modelo = index_modelo.dialect_options["postgresql"].get("where")
             where_db = index_db.get("dialect_options", {}).get("postgresql_where")
             if where_modelo is None and where_db is not None:
-                problemas.append(f"{tabla.name}: índice {nombre} tiene predicado inesperado {where_db!r}")
+                problemas.append(
+                    f"{tabla.name}: índice {nombre} tiene predicado inesperado "
+                    f"{where_db!r}"
+                )
             elif where_modelo is not None and (
-                where_db is None or _normalizar_sql(str(where_modelo)) != _normalizar_sql(str(where_db))
-                ):
+                where_db is None
+                or _normalizar_sql(str(where_modelo)) != _normalizar_sql(str(where_db))
+            ):
                 problemas.append(
                     f"{tabla.name}: predicado de {nombre} difiere: "
                     f"modelo={str(where_modelo)!r}, BD={where_db!r}"
@@ -229,7 +235,10 @@ def _deriva_esquema(connection) -> list[str]:
         else:
             columnas = tuple(part.strip().strip('"') for part in match.group(1).split(","))
             if columnas != ("condominio_id", "metodo_pago", "referencia"):
-                problemas.append(f"pagos: columnas de uq_pagos_referencia incorrectas: {columnas!r}")
+                problemas.append(
+                    "pagos: columnas de uq_pagos_referencia incorrectas: "
+                    f"{columnas!r}"
+                )
             if _normalizar_sql(match.group(2)) != _normalizar_sql(
                 "referencia IS NOT NULL AND estado = 'VIGENTE'"
             ):
@@ -254,9 +263,11 @@ def _deriva_esquema(connection) -> list[str]:
     if check_db is None:
         problemas.append("pagos: falta ck_pagos_anulacion en pg_get_constraintdef")
     elif _normalizar_sql(check_db.removeprefix("CHECK ")) != _normalizar_sql(check_modelo):
-        problemas.append(f"pagos: pg_get_constraintdef difiere para ck_pagos_anulacion: {check_db}")
+        problemas.append(
+            "pagos: pg_get_constraintdef difiere para ck_pagos_anulacion: "
+            f"{check_db}"
+        )
 
-    
     # Comprobar columnas, orden y tabla destino de la FK compuesta.
     fk_compuesta = connection.execute(
         text(
@@ -310,7 +321,6 @@ def _deriva_esquema(connection) -> list[str]:
                 f"pagos: columnas destino incorrectas en FK compuesta: "
                 f"{columnas_destino!r}"
             )
-
 
     return problemas
 
