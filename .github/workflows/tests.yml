@@ -47,8 +47,19 @@ jobs:
           PGPASSWORD=condo_test_pw psql "host=localhost port=5432 dbname=postgres user=condo_test" \
             -v ON_ERROR_STOP=1 \
             -c 'ALTER DATABASE condo_test WITH ALLOW_CONNECTIONS false'
-      - name: Suite con orden aleatorio (semilla 1)
-        run: uv run --python 3.13 pytest --durations=20 --randomly-seed=20261022
+      - name: Verificar ausencia de SessionLocal en código y tests
+        run: |
+          if grep -rn "SessionLocal" src tests --include="*.py"; then
+            echo "No debe existir SessionLocal en src ni tests."
+            exit 1
+          else
+            echo "Sin referencias a SessionLocal."
+          fi
+      - name: Medir duración total de la suite
+        run: |
+          start=$(date +%s)
+          uv run --python 3.13 pytest --durations=20 --randomly-seed=20261022
+          echo "Duración de la suite principal: $(( $(date +%s) - start )) segundos"
       - name: Suite con orden aleatorio (semilla 2)
         run: uv run --python 3.13 pytest --randomly-seed=781234
       - name: Suite con tres semillas aleatorias adicionales
