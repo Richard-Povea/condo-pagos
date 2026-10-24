@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text, text
 from sqlalchemy import Enum as PgEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
@@ -61,8 +61,9 @@ class PagoModel(Base):
         )
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
     metodo_pago: Mapped[str] = mapped_column(String(50), nullable=False)
-    referencia: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    referencia: Mapped[str | None] = mapped_column(String(100), nullable=True)
     residente_nombre: Mapped[str] = mapped_column(String(255), nullable=False)
+    registrado_por: Mapped[str] = mapped_column(String(80), nullable=False)
     fecha: Mapped[date] = mapped_column(Date, nullable=False)
     folio: Mapped[str] = mapped_column(String(20), nullable=False)
     exceso: Mapped[Decimal] = mapped_column(Numeric(12, 0), default=Decimal("0"), nullable=False)
@@ -70,6 +71,15 @@ class PagoModel(Base):
         PgEnum(EstadoPago, name="estado_pago_enum", create_type=False),
         nullable=False,
         default=EstadoPago.VIGENTE
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_pagos_referencia",
+            "referencia",
+            unique=True,
+            postgresql_where=text("referencia IS NOT NULL AND estado = 'VIGENTE'"),
+        ),
     )
 
 

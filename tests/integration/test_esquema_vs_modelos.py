@@ -1,12 +1,12 @@
 """Comprueba que los modelos SQLAlchemy no diverjan del esquema PostgreSQL."""
-from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Numeric, String, inspect
-from sqlalchemy.dialects.postgresql import ENUM
 
 import pytest
+from sqlalchemy import DateTime, Enum as SAEnum, Numeric, String, inspect, text
+from sqlalchemy.dialects.postgresql import ENUM
 
 from condo_pagos.infrastructure.database.engine import engine
 from condo_pagos.infrastructure.database.models import Base
+from condo_pagos.infrastructure.database.schema import ESQUEMA_VERSION_ESPERADA
 
 pytestmark = pytest.mark.integration
 
@@ -14,6 +14,13 @@ pytestmark = pytest.mark.integration
 def test_modelos_coinciden_con_el_esquema() -> None:
     inspector = inspect(engine)
     problemas: list[str] = []
+    tablas_modelo = {tabla.name for tabla in Base.metadata.sorted_tables}
+    tablas_db = set(inspector.get_table_names(schema="gc"))
+    tablas_sin_modelo = tablas_db - tablas_modelo - {"schema_info"}
+    if tablas_sin_modelo:
+        problemas.append(
+            f"Tablas en gc sin modelo SQLAlchemy: {sorted(tablas_sin_modelo)}"
+        )
 
     for tabla in Base.metadata.sorted_tables:
         columnas_db = {
@@ -31,8 +38,6 @@ def test_modelos_coinciden_con_el_esquema() -> None:
             tipo_modelo = columna_modelo.type
             tipo_db = columna_db["type"]
 
-            # PostgreSQL devuelve los ENUM como texto en python_type; comparar
-            # sus valores explícitamente evita un falso positivo con StrEnum.
             if isinstance(tipo_modelo, SAEnum):
                 if not isinstance(tipo_db, ENUM):
                     problemas.append(
@@ -84,6 +89,15 @@ def test_modelos_coinciden_con_el_esquema() -> None:
                         f"({precision_db}, {escala_db})"
                     )
 
+            if isinstance(tipo_modelo, DateTime):
+                zona_modelo = tipo_modelo.timezone
+                zona_db = getattr(tipo_db, "timezone", None)
+                if zona_modelo != zona_db:
+                    problemas.append(
+                        f"{tabla.name}.{nombre}: timezone modelo {zona_modelo!r} "
+                        f"vs BD {zona_db!r}"
+                    )
+
             if columna_modelo.nullable != columna_db["nullable"]:
                 problemas.append(
                     f"{tabla.name}.{nombre}: nullable modelo "
@@ -98,3 +112,12 @@ def test_modelos_coinciden_con_el_esquema() -> None:
             )
 
     assert not problemas, "\n".join(problemas)
+
+
+def test_version_de_esquema_instalada() -> None:
+    with engine.connect() as connection:
+        version = connection.execute(
+            text("SELECT version FROM gc.schema_info")
+        ).scalar_one_or_none()
+
+    assert version == ESQUEMA_VERSION_ESPERADA == 2

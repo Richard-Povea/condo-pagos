@@ -86,6 +86,7 @@ class Pago:
     residente_nombre: str
     fecha: date
     folio: str
+    registrado_por: str
     exceso: Decimal = Decimal("0")
     estado: EstadoPago = EstadoPago.VIGENTE
 

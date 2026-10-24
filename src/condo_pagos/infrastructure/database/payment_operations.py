@@ -76,7 +76,8 @@ class OperacionesPagoPostgres:
             monto=Decimal(str(monto)),
             metodo_pago=metodo_pago,
             referencia=referencia_limpia,
-            residente_nombre=operador or "Operador",
+            residente_nombre="No informado",
+            registrado_por=operador.strip(),
             fecha_pago=fecha or date.today(),
         )
         try:

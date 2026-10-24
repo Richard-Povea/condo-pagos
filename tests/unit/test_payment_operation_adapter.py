@@ -88,6 +88,8 @@ def test_referencia_vacia_se_normaliza_a_none_y_fecha_se_conserva(
     cmd = captured["cmd"]
     assert cmd.referencia is None
     assert cmd.fecha_pago == fecha_pago
+    assert cmd.registrado_por == "Administración"
+    assert cmd.residente_nombre == "No informado"
 
 
 def test_fallo_pdf_no_anula_pago_y_devuelve_pdf_ok_false(

@@ -84,6 +84,7 @@ def test_1_folios_concurrentes(uow):  # <-- Asegúrate de recibir la uow del fix
                 metodo_pago="TRANSFERENCIA",
                 referencia=f"REF-CONC-{idx}",
                 residente_nombre=f"Residente {idx}",
+                registrado_por="OPERADOR_TEST",
                 fecha_pago=date(2026, 10, 12)
             )
             return caso_uso.ejecutar(cmd).folio
@@ -117,6 +118,7 @@ def test_2_doble_pago_simultaneo_misma_unidad():
             metodo_pago="TRANSFERENCIA",
             referencia=ref,
             residente_nombre="Simultáneo",
+            registrado_por="OPERADOR_TEST",
             fecha_pago=date(2026, 10, 12)
         )
         return caso_uso.ejecutar(cmd)
@@ -163,6 +165,7 @@ def test_4_referencia_duplicada(uow):
         metodo_pago="EFECTIVO",
         referencia="REF-DUP-TEST",
         residente_nombre="Duplicado",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
     caso_uso = RegistrarPagoUseCase(uow)
@@ -186,6 +189,7 @@ def test_5_trigger_inmutabilidad(uow):
         metodo_pago="TRANSFERENCIA",
         referencia="REF-IMMUTABLE",
         residente_nombre="Inmutable",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
     resultado = caso_uso.ejecutar(cmd)
@@ -231,6 +235,7 @@ def test_7_anulacion_restaura_saldos(uow):
         metodo_pago="TRANSFERENCIA",
         referencia="REF-ANULAR-01",
         residente_nombre="Anular Test",
+        registrado_por="OPERADOR_TEST",
         fecha_pago=date(2026, 10, 12)
     )
     _ = caso_uso_pago.ejecutar(cmd)

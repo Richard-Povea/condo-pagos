@@ -51,6 +51,7 @@ class RegistrarPagoUseCase:
                 residente_nombre=cmd.residente_nombre,
                 fecha=cmd.fecha_pago,
                 folio=folio,
+                registrado_por=cmd.registrado_por,
                 exceso=resultado_distribucion.exceso,
                 estado=EstadoPago.VIGENTE,
             )

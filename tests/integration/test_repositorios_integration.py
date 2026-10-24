@@ -119,6 +119,7 @@ def test_integration_folios_secuencia_y_pago_duplicado(uow):
             referencia="REF-INTEGRATION-001",
             residente_nombre="Carlos Soto",
             fecha=date(2026, 10, 12),
+            registrado_por="OPERADOR_TEST",
             folio=folio1,
             exceso=Decimal("0"),
             estado=EstadoPago.VIGENTE
@@ -136,6 +137,7 @@ def test_integration_folios_secuencia_y_pago_duplicado(uow):
             referencia="REF-INTEGRATION-001", # Misma referencia
             residente_nombre="Otro Residente",
             fecha=date(2026, 10, 12),
+            registrado_por="OPERADOR_TEST",
             folio=folio2,
             exceso=Decimal("0"),
             estado=EstadoPago.VIGENTE
