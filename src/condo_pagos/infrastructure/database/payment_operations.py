@@ -117,7 +117,7 @@ class OperacionesPagoPostgres:
                     {"folio": pago_id},
                 ).scalar_one_or_none()
             if pago_uuid is None:
-                raise ValueError(f"No se encontró el pago {pago_id}")
+                raise ValueError(f"No se encontró el pago {pago_id}") from None
 
         with self._session_factory() as session:
             folio = session.execute(
