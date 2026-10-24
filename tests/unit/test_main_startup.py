@@ -44,19 +44,20 @@ def _preparar_ui(monkeypatch: Any) -> tuple[_FakeApp, _FakeWindow]:
 
 def test_arranque_demo_muestra_ventana_y_cierra_contenedor(monkeypatch: Any) -> None:
     container = _FakeContainer()
-    _preparar_ui(monkeypatch)
+    _app, window = _preparar_ui(monkeypatch)
 
     import condo_pagos.infrastructure.memory_container as memory_container
 
     monkeypatch.setattr(memory_container, "InMemoryContainer", lambda: container)
 
     assert main_module.main(["--demo"]) == 0
+    assert window.mostrada
     assert container.cerrado
 
 
 def test_arranque_real_muestra_ventana_y_cierra_contenedor(monkeypatch: Any) -> None:
     container = _FakeContainer()
-    _preparar_ui(monkeypatch)
+    _app, window = _preparar_ui(monkeypatch)
 
     import condo_pagos.config as config
     import condo_pagos.infrastructure.bootstrap as bootstrap
@@ -65,4 +66,5 @@ def test_arranque_real_muestra_ventana_y_cierra_contenedor(monkeypatch: Any) -> 
     monkeypatch.setattr(bootstrap, "build_container", lambda _settings: container)
 
     assert main_module.main([]) == 0
+    assert window.mostrada
     assert container.cerrado
