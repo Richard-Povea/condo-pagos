@@ -1,6 +1,6 @@
 from collections.abc import Callable
-from typing import Any
 from datetime import date
+from typing import Any
 
 from PySide6.QtCore import Signal
 

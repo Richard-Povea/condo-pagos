@@ -1,8 +1,6 @@
 """Contrato mínimo de los seeds de desarrollo para el esquema v2."""
 
 import pytest
-from sqlalchemy import text
-
 from seed_ids import (
     CARGO_SEMILLA,
     PAGO_SEMILLA_ANULADO,
@@ -11,6 +9,8 @@ from seed_ids import (
     UNIDAD_SEMILLA_101,
     UNIDAD_SEMILLA_102,
 )
+from sqlalchemy import text
+
 from condo_pagos.infrastructure.database.schema import ESQUEMA_VERSION_ESPERADA
 
 pytestmark = pytest.mark.integration

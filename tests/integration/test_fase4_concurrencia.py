@@ -4,6 +4,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+from seed_ids import PAGO_SEMILLA_SIN_REFERENCIA
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
@@ -11,7 +12,6 @@ from condo_pagos.domain.entities import Cargo, EstadoCargo
 from condo_pagos.domain.errors import DominioError
 from condo_pagos.infrastructure.database.bootstrap import ESQUEMA_VERSION_ESPERADA
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
-from seed_ids import PAGO_SEMILLA_SIN_REFERENCIA
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
 from condo_pagos.use_cases.dto import RegistrarPagoCmd
 from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
@@ -48,7 +48,7 @@ def _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"), codi
         uow.commit()
 
 
-def test_1_folios_concurrentes(uow, session_local):  # <-- Asegúrate de recibir la uow del fixture aquí
+def test_1_folios_concurrentes(uow, session_local):
     """6 hilos pagando en distintas unidades producen folios [1..6] sin huecos ni duplicados."""
     unidades = [uuid4() for _ in range(6)]
     cargos = [uuid4() for _ in range(6)]

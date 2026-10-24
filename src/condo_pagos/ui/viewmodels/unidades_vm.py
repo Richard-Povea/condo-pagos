@@ -12,7 +12,12 @@ class UnidadesViewModel(BaseViewModel):
     detalle_unidad_cargado = Signal(object)  # Estado de cuenta DTO
     navegar_a_pago = Signal(object)          # Emite la unidad para preseleccionarla
 
-    def __init__(self, listar_unidades_uc: Callable[..., Any], consultar_estado_uc: Callable[..., Any], parent: Any | None = None) -> None:
+    def __init__(
+            self, 
+            listar_unidades_uc: Callable[..., Any], 
+            consultar_estado_uc: Callable[..., Any], 
+            parent: Any | None = None
+            ) -> None:
         super().__init__(parent=parent)
         self._listar_uc = listar_unidades_uc
         self._consultar_estado_uc = consultar_estado_uc

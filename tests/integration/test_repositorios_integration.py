@@ -7,7 +7,6 @@ from sqlalchemy import text
 
 from condo_pagos.domain.entities import Cargo, EstadoCargo, EstadoPago, Pago
 from condo_pagos.domain.errors import DominioError
-from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 
 
 def test_integration_unidades_y_cargos(uow):

@@ -1,13 +1,9 @@
 import io
-from typing import Any
 
 import qrcode
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import (
-    Image as RLImage,
-)
 from reportlab.platypus import (
     Flowable,
     Paragraph,
@@ -15,6 +11,9 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+)
+from reportlab.platypus import (
+    Image as RLImage,
 )
 
 from condo_pagos.domain.comprobante import ComprobanteData

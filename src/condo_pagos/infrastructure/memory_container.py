@@ -169,7 +169,13 @@ class InMemoryContainer:
 
     def emitir_pdf(self, comprobante_id: str) -> str:
         """Genera un comprobante PDF sencillo para un pago de demostración."""
-        pago = next((p for p in self._pagos if p.folio == comprobante_id or str(p.pago_id) == comprobante_id), None)
+        pago = next(
+            (
+                p for p in self._pagos
+                if p.folio == comprobante_id or str(p.pago_id) == comprobante_id
+                ), 
+            None
+            )
         if pago is None:
             raise ValueError(f"No se encontró el pago de demostración: {comprobante_id}")
 
@@ -207,7 +213,12 @@ class InMemoryContainer:
         **kwargs: object,
     ) -> str:
         """Anula un pago ficticio y restituye el saldo a la unidad."""
-        pago = next((p for p in self._pagos if str(p.pago_id) == str(pago_id) or p.folio == str(pago_id)), None)
+        pago = next(
+            (
+                p for p in self._pagos 
+                if str(p.pago_id) == str(pago_id) or p.folio == str(pago_id)
+                ), 
+                None)
         if pago is None:
             raise ValueError(f"No se encontró el pago: {pago_id}")
         if pago.estado.casefold() == "anulado":

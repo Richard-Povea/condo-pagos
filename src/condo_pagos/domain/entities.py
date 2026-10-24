@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
@@ -113,6 +113,6 @@ class Pago:
         if self.estado == EstadoPago.ANULADO:
             raise DominioError("El pago ya se encuentra anulado.")
         self.estado = EstadoPago.ANULADO
-        self.anulado_en = datetime.now(timezone.utc)
+        self.anulado_en = datetime.now(UTC)
         self.anulado_por = operador.strip()
         self.motivo_anulacion = motivo.strip()

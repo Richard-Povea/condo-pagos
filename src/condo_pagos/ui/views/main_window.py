@@ -1,6 +1,7 @@
 # src/condo_pagos/ui/views/main_window.py
 from collections.abc import Callable
 from typing import Any
+
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
@@ -13,8 +14,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from condo_pagos.ui.services.navegacion import ServicioNavegacion
+
 from condo_pagos.ui import strings
+from condo_pagos.ui.services.navegacion import ServicioNavegacion
 
 
 class MainWindow(QMainWindow):

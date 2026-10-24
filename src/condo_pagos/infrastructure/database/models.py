@@ -4,8 +4,20 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
-    Boolean, CHAR, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint,
-    Index, Integer, Numeric, String, Text, UniqueConstraint, text,
+    CHAR,
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
 )
 from sqlalchemy import Enum as PgEnum
 from sqlalchemy.dialects.postgresql import JSONB

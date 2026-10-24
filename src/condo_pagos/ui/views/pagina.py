@@ -1,5 +1,6 @@
 # src/condo_pagos/ui/views/pagina.py
-from typing import Protocol, Any
+from typing import Any, Protocol
+
 
 class Pagina(Protocol):
     def al_mostrar(self, parametros: Any | None) -> None:

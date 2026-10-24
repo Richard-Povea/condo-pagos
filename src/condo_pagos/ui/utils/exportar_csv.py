@@ -1,6 +1,6 @@
 import csv
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 
 def exportar_pagos_a_csv(ruta_archivo: Path | str, pagos: list[Any]) -> None:

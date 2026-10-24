@@ -1,12 +1,11 @@
 """Prueba unicidad por condominio/método, referencias opcionales y pagos anulados."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-
 
 pytestmark = pytest.mark.integration
 
@@ -78,10 +77,22 @@ def test_referencias_opcionales_y_unicidad_por_condominio_y_metodo(engine) -> No
             _insertar_unidad(connection, unidad_2, condominio_2, "IDX-201")
 
             # Dos referencias NULL están permitidas.
-            _insertar_pago(connection, pago_id=uuid4(), unidad_id=unidad_1, condominio_id=condominio_1,
-                           metodo="EFECTIVO", referencia=None, folio="IDX-001")
-            _insertar_pago(connection, pago_id=uuid4(), unidad_id=unidad_1, condominio_id=condominio_1,
-                           metodo="EFECTIVO", referencia=None, folio="IDX-002")
+            _insertar_pago(
+                connection, 
+                pago_id=uuid4(), 
+                unidad_id=unidad_1, 
+                condominio_id=condominio_1,
+                metodo="EFECTIVO", 
+                referencia=None, 
+                folio="IDX-001")
+            _insertar_pago(
+                connection, 
+                pago_id=uuid4(), 
+                unidad_id=unidad_1, 
+                condominio_id=condominio_1,
+                metodo="EFECTIVO", 
+                referencia=None, 
+                folio="IDX-002")
 
             # Misma referencia en un método diferente: permitido.
             transferencia_id = uuid4()
@@ -93,11 +104,10 @@ def test_referencias_opcionales_y_unicidad_por_condominio_y_metodo(engine) -> No
                            referencia="REF-UNICA", folio="IDX-004")
 
             # Misma referencia y método en el mismo condominio: rechazado.
-            with pytest.raises(IntegrityError):
-                with connection.begin_nested():
-                    _insertar_pago(connection, pago_id=uuid4(), unidad_id=unidad_1,
-                                   condominio_id=condominio_1, metodo="TRANSFERENCIA",
-                                   referencia="REF-UNICA", folio="IDX-005")
+            with pytest.raises(IntegrityError), connection.begin_nested():
+                _insertar_pago(connection, pago_id=uuid4(), unidad_id=unidad_1,
+                               condominio_id=condominio_1, metodo="TRANSFERENCIA",
+                               referencia="REF-UNICA", folio="IDX-005")
 
             # Misma referencia y método en otro condominio: permitido.
             _insertar_pago(connection, pago_id=uuid4(), unidad_id=unidad_2,
@@ -132,43 +142,39 @@ def test_fk_compuesta_y_check_de_auditoria_de_anulacion(engine) -> None:
         try:
             _insertar_unidad(connection, unidad_id, condominio_id, "IDX-FK")
 
-            with pytest.raises(IntegrityError):
-                with connection.begin_nested():
-                    _insertar_pago(
-                        connection, pago_id=uuid4(), unidad_id=unidad_id,
-                        condominio_id=otro_condominio, metodo="EFECTIVO",
-                        referencia=None, folio="IDX-FK-BAD",
-                    )
+            with pytest.raises(IntegrityError), connection.begin_nested():
+                _insertar_pago(
+                    connection, pago_id=uuid4(), unidad_id=unidad_id,
+                    condominio_id=otro_condominio, metodo="EFECTIVO",
+                    referencia=None, folio="IDX-FK-BAD",
+                )
 
-            with pytest.raises(IntegrityError):
-                with connection.begin_nested():
-                    _insertar_pago(
-                        connection, pago_id=uuid4(), unidad_id=unidad_id,
-                        condominio_id=condominio_id, metodo="EFECTIVO",
-                        referencia=None, folio="IDX-ANULADO-SIN-OP",
-                        estado="ANULADO", anulado_en=datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc),
-                        anulado_por=None, motivo_anulacion="Motivo suficientemente largo",
-                    )
+            with pytest.raises(IntegrityError), connection.begin_nested():
+                _insertar_pago(
+                    connection, pago_id=uuid4(), unidad_id=unidad_id,
+                    condominio_id=condominio_id, metodo="EFECTIVO",
+                    referencia=None, folio="IDX-ANULADO-SIN-OP",
+                    estado="ANULADO", anulado_en=datetime(2026, 10, 20, 12, 0, tzinfo=UTC),
+                    anulado_por=None, motivo_anulacion="Motivo suficientemente largo",
+                )
 
-            with pytest.raises(IntegrityError):
-                with connection.begin_nested():
-                    _insertar_pago(
-                        connection, pago_id=uuid4(), unidad_id=unidad_id,
-                        condominio_id=condominio_id, metodo="EFECTIVO",
-                        referencia=None, folio="IDX-ANULADO-MOT-CORT",
-                        estado="ANULADO", anulado_en="2026-10-20T12:00:00Z",
-                        anulado_por="OPERADOR_TEST", motivo_anulacion="corto",
-                    )
+            with pytest.raises(IntegrityError), connection.begin_nested():
+                _insertar_pago(
+                    connection, pago_id=uuid4(), unidad_id=unidad_id,
+                    condominio_id=condominio_id, metodo="EFECTIVO",
+                    referencia=None, folio="IDX-ANULADO-MOT-CORT",
+                    estado="ANULADO", anulado_en="2026-10-20T12:00:00Z",
+                    anulado_por="OPERADOR_TEST", motivo_anulacion="corto",
+                )
 
-            with pytest.raises(IntegrityError):
-                with connection.begin_nested():
-                    _insertar_pago(
-                        connection, pago_id=uuid4(), unidad_id=unidad_id,
-                        condominio_id=condominio_id, metodo="EFECTIVO",
-                        referencia=None, folio="IDX-VIGENTE-AUDIT",
-                        estado="VIGENTE", anulado_en="2026-10-20T12:00:00Z",
-                        anulado_por="OPERADOR_TEST",
-                        motivo_anulacion="Motivo suficientemente largo",
-                    )
+            with pytest.raises(IntegrityError), connection.begin_nested():
+                _insertar_pago(
+                    connection, pago_id=uuid4(), unidad_id=unidad_id,
+                    condominio_id=condominio_id, metodo="EFECTIVO",
+                    referencia=None, folio="IDX-VIGENTE-AUDIT",
+                    estado="VIGENTE", anulado_en="2026-10-20T12:00:00Z",
+                    anulado_por="OPERADOR_TEST",
+                    motivo_anulacion="Motivo suficientemente largo",
+                )
         finally:
             transaction.rollback()

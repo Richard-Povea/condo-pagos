@@ -4,6 +4,8 @@ from sqlalchemy import Engine
 
 from condo_pagos.infrastructure.database.schema import (
     ESQUEMA_VERSION_ESPERADA,
+)
+from condo_pagos.infrastructure.database.schema import (
     verificar_esquema as _verificar_esquema,
 )
 

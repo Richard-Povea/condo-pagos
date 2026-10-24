@@ -10,7 +10,13 @@ from PySide6.QtWidgets import (
 
 
 class AnularPagoDialog(QDialog):
-    def __init__(self, folio: str, monto_str: str, unidad: str, parent: QWidget | None = None) -> None:
+    def __init__(
+            self, 
+            folio: str, 
+            monto_str: str, 
+            unidad: str, 
+            parent: QWidget | None = None
+            ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Anular Pago - {folio}")
         self.resize(400, 300)

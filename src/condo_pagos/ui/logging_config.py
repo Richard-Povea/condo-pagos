@@ -1,9 +1,9 @@
 """Configuración centralizada de logs para diagnóstico de la aplicación."""
 
 import logging
+import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-import sys
 from types import TracebackType
 
 

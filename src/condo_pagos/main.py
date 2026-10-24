@@ -8,8 +8,8 @@ from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from condo_pagos.infrastructure.errors import ErrorDeInfraestructura, EsquemaIncompatible
-from condo_pagos.ui.ports import UiContainer
 from condo_pagos.ui.app import crear_aplicacion
+from condo_pagos.ui.ports import UiContainer
 
 log = logging.getLogger(__name__)
 

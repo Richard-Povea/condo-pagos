@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Callable
 from uuid import UUID
 
 from sqlalchemy import text
@@ -23,7 +23,6 @@ from condo_pagos.infrastructure.pdf_generator.reportlab_renderer import ReportLa
 from condo_pagos.use_cases.anular_pago import AnularPagoUseCase
 from condo_pagos.use_cases.dto import RegistrarPagoCmd
 from condo_pagos.use_cases.registrar_pago import RegistrarPagoUseCase
-
 
 log = logging.getLogger(__name__)
 

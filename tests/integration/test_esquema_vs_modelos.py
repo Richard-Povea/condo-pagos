@@ -3,7 +3,8 @@
 import re
 
 import pytest
-from sqlalchemy import CHAR, DateTime, Enum as SAEnum, Numeric, String, inspect, text
+from sqlalchemy import CHAR, DateTime, Numeric, String, inspect, text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ENUM, JSONB
 
 from condo_pagos.infrastructure.database.models import Base
@@ -56,7 +57,10 @@ def _deriva_esquema(connection) -> list[str]:
             if isinstance(tipo_modelo, SAEnum):
                 if not isinstance(tipo_db, ENUM):
                     problemas.append(f"{tabla.name}.{nombre}: modelo ENUM vs BD {tipo_db!r}")
-                elif tipo_modelo.name != tipo_db.name or list(tipo_modelo.enums) != list(tipo_db.enums):
+                elif (
+                    tipo_modelo.name != tipo_db.name or 
+                    list(tipo_modelo.enums) != list(tipo_db.enums)
+                    ):
                     problemas.append(
                         f"{tabla.name}.{nombre}: enum modelo ({tipo_modelo.name}, "
                         f"{list(tipo_modelo.enums)!r}) vs BD ({tipo_db.name}, {list(tipo_db.enums)!r})"
@@ -201,12 +205,13 @@ def _deriva_esquema(connection) -> list[str]:
             where_db = index_db.get("dialect_options", {}).get("postgresql_where")
             if where_modelo is None and where_db is not None:
                 problemas.append(f"{tabla.name}: índice {nombre} tiene predicado inesperado {where_db!r}")
-            elif where_modelo is not None:
-                if where_db is None or _normalizar_sql(str(where_modelo)) != _normalizar_sql(str(where_db)):
-                    problemas.append(
-                        f"{tabla.name}: predicado de {nombre} difiere: "
-                        f"modelo={str(where_modelo)!r}, BD={where_db!r}"
-                    )
+            elif where_modelo is not None and (
+                where_db is None or _normalizar_sql(str(where_modelo)) != _normalizar_sql(str(where_db))
+                ):
+                problemas.append(
+                    f"{tabla.name}: predicado de {nombre} difiere: "
+                    f"modelo={str(where_modelo)!r}, BD={where_db!r}"
+                )
 
         for nombre in indices_db.keys() - indices_modelo.keys():
             problemas.append(f"{tabla.name}: índice extra en BD {nombre}")
