@@ -32,6 +32,7 @@ def _preparar_ui(monkeypatch: Any) -> tuple[_FakeApp, _FakeWindow]:
     app = _FakeApp()
     window = _FakeWindow()
     monkeypatch.setattr(main_module, "crear_aplicacion", lambda _args: (app, None))
+    monkeypatch.setattr(main_module.QMessageBox, "critical", lambda *_args: None)
 
     import condo_pagos.ui.composition as composition
     import condo_pagos.ui.services.configuracion as configuracion
