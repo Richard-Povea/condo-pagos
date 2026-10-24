@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="CONDO_",
+        populate_by_name=True,
         extra="ignore",
     )
 
