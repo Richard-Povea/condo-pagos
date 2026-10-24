@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from decimal import Decimal
+from threading import Barrier
 from uuid import uuid4
 
 import pytest
@@ -32,8 +33,8 @@ def _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"), codi
                 "cond_id": str(uuid4()),
                 "codigo": codigo,
                 "nombre": "Condominio Concurrente",
-                "activa": True
-            }
+                "activa": True,
+            },
         )
         cargo = Cargo(
             id=cargo_id,
@@ -42,7 +43,7 @@ def _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"), codi
             monto_original=monto,
             saldo=monto,
             vencimiento=date(2026, 10, 10),
-            estado=EstadoCargo.PENDIENTE
+            estado=EstadoCargo.PENDIENTE,
         )
         uow.cargos.guardar(cargo)
         uow.commit()
@@ -52,14 +53,17 @@ def test_1_folios_concurrentes(uow, session_local):
     """6 hilos pagando en distintas unidades producen folios [1..6] sin huecos ni duplicados."""
     unidades = [uuid4() for _ in range(6)]
     cargos = [uuid4() for _ in range(6)]
-    
-    # Preparar todas las unidades y cargos de forma síncrona y limpia
+
+    # Preparar todas las unidades y cargos de forma síncrona y limpia.
     for i in range(6):
         uow_prep = SqlAlchemyUnitOfWork(session_local)
         _crear_unidad_y_cargo(uow_prep, unidades[i], cargos[i], codigo=str(200 + i))
 
+    barrera = Barrier(6)
+
     def realizar_pago(idx):
-        # Cada hilo abre su propia UoW independiente
+        # Cada hilo abre su propia UoW y espera antes de iniciar la operación.
+        barrera.wait(timeout=10)
         with SqlAlchemyUnitOfWork(session_local) as uow_hilo:
             caso_uso = RegistrarPagoUseCase(uow_hilo)
             cmd = RegistrarPagoCmd(
@@ -69,21 +73,19 @@ def test_1_folios_concurrentes(uow, session_local):
                 referencia=f"REF-CONC-{idx}",
                 residente_nombre=f"Residente {idx}",
                 registrado_por="OPERADOR_TEST",
-                fecha_pago=date(2026, 10, 12)
+                fecha_pago=date(2026, 10, 12),
             )
             return caso_uso.ejecutar(cmd).folio
 
-    folios_obtenidos = []
     with ThreadPoolExecutor(max_workers=6) as executor:
         futures = [executor.submit(realizar_pago, i) for i in range(6)]
-        for future in as_completed(futures):
-            folios_obtenidos.append(future.result())
+        folios_obtenidos = [future.result() for future in as_completed(futures)]
 
     anio_actual = str(date.today().year)
-    numeros = sorted([int(f.split("-")[1]) for f in folios_obtenidos])
+    numeros = sorted(int(f.split("-")[1]) for f in folios_obtenidos)
     assert numeros == [1, 2, 3, 4, 5, 6]
-    for f in folios_obtenidos:
-        assert f.startswith(anio_actual)
+    for folio in folios_obtenidos:
+        assert folio.startswith(anio_actual)
 
 
 def test_2_doble_pago_simultaneo_misma_unidad(session_local):
@@ -92,6 +94,7 @@ def test_2_doble_pago_simultaneo_misma_unidad(session_local):
     cargo_id = uuid4()
     uow_prep = SqlAlchemyUnitOfWork(session_local)
     _crear_unidad_y_cargo(uow_prep, unidad_id, cargo_id, monto=Decimal("50000"), codigo="301")
+    barrera = Barrier(2)
 
     def intentar_pago(ref):
         uow = SqlAlchemyUnitOfWork(session_local)
@@ -103,8 +106,9 @@ def test_2_doble_pago_simultaneo_misma_unidad(session_local):
             referencia=ref,
             residente_nombre="Simultáneo",
             registrado_por="OPERADOR_TEST",
-            fecha_pago=date(2026, 10, 12)
+            fecha_pago=date(2026, 10, 12),
         )
+        barrera.wait(timeout=10)
         return caso_uso.ejecutar(cmd)
 
     exitos = 0
@@ -112,7 +116,7 @@ def test_2_doble_pago_simultaneo_misma_unidad(session_local):
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [
             executor.submit(intentar_pago, "REF-SIM-A"),
-            executor.submit(intentar_pago, "REF-SIM-B")
+            executor.submit(intentar_pago, "REF-SIM-B"),
         ]
         for future in as_completed(futures):
             try:
@@ -130,10 +134,10 @@ def test_3_rollback_no_consume_folio(uow):
     with uow:
         folio_antes = uow.folios.siguiente_folio()
         uow.rollback()
-    
+
     with uow:
         folio_despues = uow.folios.siguiente_folio()
-    
+
     assert folio_antes == folio_despues
 
 
@@ -150,12 +154,12 @@ def test_4_referencia_duplicada(uow):
         referencia="REF-DUP-TEST",
         residente_nombre="Duplicado",
         registrado_por="OPERADOR_TEST",
-        fecha_pago=date(2026, 10, 12)
+        fecha_pago=date(2026, 10, 12),
     )
     caso_uso = RegistrarPagoUseCase(uow)
     caso_uso.ejecutar(cmd)
 
-    # Segundo intento con misma referencia
+    # Segundo intento con misma referencia.
     with pytest.raises(DominioError, match="Ya existe un pago registrado"):
         caso_uso.ejecutar(cmd)
 
@@ -174,15 +178,15 @@ def test_5_trigger_inmutabilidad(uow):
         referencia="REF-IMMUTABLE",
         residente_nombre="Inmutable",
         registrado_por="OPERADOR_TEST",
-        fecha_pago=date(2026, 10, 12)
+        fecha_pago=date(2026, 10, 12),
     )
     resultado = caso_uso.ejecutar(cmd)
 
-    # Intentar hacer UPDATE directo sobre la tabla comprobantes
+    # Intentar hacer UPDATE directo sobre la tabla comprobantes.
     with pytest.raises(Exception, match="inmutables"):
         uow.session.execute(
             text("UPDATE gc.comprobantes SET residente_nombre = 'Modificado' WHERE folio = :folio"),
-            {"folio": resultado.folio}
+            {"folio": resultado.folio},
         )
         uow.commit()
 
@@ -193,11 +197,11 @@ def test_6_constraints_check_y_fk(uow):
         uow.session.execute(
             text("""
                     INSERT INTO gc.cargos (
-                    id, unidad_id, periodo, monto_original, 
+                    id, unidad_id, periodo, monto_original,
                     saldo, vencimiento, estado)
                     VALUES (:id, :unidad_id, '2026-10', 1000, 1000, '2026-10-10', 'PENDIENTE')
                 """),
-            {"id": str(uuid4()), "unidad_id": str(uuid4())}  # Unidad inexistente
+            {"id": str(uuid4()), "unidad_id": str(uuid4())},  # Unidad inexistente.
         )
         uow.commit()
 
@@ -208,7 +212,6 @@ def test_7_anulacion_restaura_saldos(uow):
     cargo_id = uuid4()
     _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"), codigo="701")
 
-    # Al inicio, el cargo está pendiente (hay 1 pendiente)
     pendientes_iniciales = uow.cargos.obtener_pendientes_por_unidad(unidad_id)
     assert len(pendientes_iniciales) == 1
 
@@ -220,20 +223,17 @@ def test_7_anulacion_restaura_saldos(uow):
         referencia="REF-ANULAR-01",
         residente_nombre="Anular Test",
         registrado_por="OPERADOR_TEST",
-        fecha_pago=date(2026, 10, 12)
+        fecha_pago=date(2026, 10, 12),
     )
     _ = caso_uso_pago.ejecutar(cmd)
 
-    # Después del pago, ya no quedan cargos pendientes (longitud 0)
     pendientes_antes_anular = uow.cargos.obtener_pendientes_por_unidad(unidad_id)
     assert len(pendientes_antes_anular) == 0
 
-    # Obtener el ID del pago registrado
     pago_db = uow.session.execute(
         text("SELECT id FROM gc.pagos WHERE referencia = 'REF-ANULAR-01'")
     ).fetchone()
 
-    # Anular pago
     caso_uso_anular = AnularPagoUseCase(uow)
     caso_uso_anular.ejecutar(
         pago_db.id,
@@ -241,7 +241,6 @@ def test_7_anulacion_restaura_saldos(uow):
         motivo="Anulación de prueba para verificar restauración de saldos",
     )
 
-    # Verificar que tras la anulación el saldo del cargo volvió a 50000 y aparece como pendiente
     pendientes_despues = uow.cargos.obtener_pendientes_por_unidad(unidad_id)
     assert len(pendientes_despues) == 1
     assert pendientes_despues[0].saldo == Decimal("50000")
@@ -250,9 +249,7 @@ def test_7_anulacion_restaura_saldos(uow):
 def test_8_plantilla_contiene_esquema_v2_y_seeds(engine):
     """La base clonada contiene la versión esperada y los seeds de contrato."""
     with engine.connect() as connection:
-        version = connection.execute(
-            text("SELECT version FROM gc.schema_info")
-        ).scalar_one()
+        version = connection.execute(text("SELECT version FROM gc.schema_info")).scalar_one()
         pago_semilla = connection.execute(
             text("SELECT 1 FROM gc.pagos WHERE id = :pago_id"),
             {"pago_id": PAGO_SEMILLA_SIN_REFERENCIA},
