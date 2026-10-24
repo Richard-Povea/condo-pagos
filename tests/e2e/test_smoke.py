@@ -22,3 +22,21 @@ def test_e2e_registro_pago_y_generacion_pdf(tmp_path, engine):
         assert container.storage is not None
     finally:
         container.cerrar()
+
+
+@pytest.mark.integration
+def test_e2e_contenedor_usado_por_la_ui(tmp_path, engine):
+    """Construye el contenedor PostgreSQL que utiliza el arranque real de la UI."""
+    from condo_pagos.infrastructure.bootstrap import build_container as build_ui_container
+
+    settings = Settings(
+        condo_database_url=engine.url.render_as_string(hide_password=False),
+        pdf_dir=tmp_path,
+    )
+    container = build_ui_container(settings)
+
+    try:
+        assert container.listar_unidades()
+        assert container.listar_pagos().total_paginas >= 0
+    finally:
+        container.cerrar()
