@@ -67,6 +67,10 @@ class InMemoryContainer:
         self._pagos: list[PagoDemo] = []
         self._folios = 1
 
+    def cerrar(self) -> None:
+        """La demo no mantiene conexiones ni recursos externos que cerrar."""
+        return None
+
     def listar_unidades(self, solo_morosas: bool = False) -> list[UnidadDemo]:
         """Lista las unidades de muestra, opcionalmente solo las que tienen deuda."""
         if solo_morosas:
