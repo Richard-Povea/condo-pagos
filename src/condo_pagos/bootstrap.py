@@ -41,7 +41,9 @@ class PostgresContainer:
             self._engine.url.render_as_string(hide_password=True),
         )
         self._consultas = ConsultasPostgres(self._session_factory)
-        self._uow_factory = lambda: SqlAlchemyUnitOfWork(self._session_factory)
+        self._uow_factory = lambda: SqlAlchemyUnitOfWork(
+            self._session_factory, zona_horaria=settings.zona_horaria
+        )
         self._pdf_dir: Path = settings.pdf_dir
         self._operaciones_pago = OperacionesPagoPostgres(
             self._session_factory, self._uow_factory, self._pdf_dir
