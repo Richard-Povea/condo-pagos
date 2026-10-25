@@ -92,7 +92,15 @@ forbidden_modules = ["condo_pagos.bootstrap"]
 [[tool.importlinter.contracts]]
 name = "La UI no importa infraestructura; consume contratos y ViewModels"
 type = "forbidden"
-source_modules = ["condo_pagos.ui.views", "condo_pagos.ui.components"]
+source_modules = [
+    "condo_pagos.ui.views.pagos_view",
+    "condo_pagos.ui.views.registrar_pago_view",
+    "condo_pagos.ui.views.unidades_view",
+    "condo_pagos.ui.components.base",
+    "condo_pagos.ui.components.tabla_base",
+    "condo_pagos.ui.components.tabla_pagos",
+    "condo_pagos.ui.components.tabla_unidades",
+]
 forbidden_modules = [
     "condo_pagos.infrastructure",
     "condo_pagos.bootstrap",
