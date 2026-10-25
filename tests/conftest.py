@@ -12,7 +12,6 @@ from sqlalchemy.orm import sessionmaker
 
 from condo_pagos.bootstrap import build_container
 from condo_pagos.config import Settings
-
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
