@@ -13,18 +13,19 @@ def _verificar_registro_e_historial(container: Any) -> None:
     assert unidades, "El contenedor debe exponer al menos una unidad"
 
     unidad = unidades[0]
-    estado_antes = container.consultar_estado_cuenta(unidad.id)
+    unidad_id = getattr(unidad, "id", None) or unidad.unidad_id
+    estado_antes = container.consultar_estado_cuenta(unidad_id)
     assert estado_antes.total_adeudado > 0
 
     monto = min(estado_antes.total_adeudado, Decimal("1.00"))
     resultado = container.registrar_pago(
-        unidad_id=unidad.id,
+        unidad_id=unidad_id,
         monto=monto,
         metodo_pago="EFECTIVO",
         operador="test-contract",
     )
 
-    estado_despues = container.consultar_estado_cuenta(unidad.id)
+    estado_despues = container.consultar_estado_cuenta(unidad_id)
     historial = container.listar_pagos()
     assert estado_despues.total_adeudado == estado_antes.total_adeudado - monto
     assert any(pago.folio == resultado.folio for pago in historial.filas)
