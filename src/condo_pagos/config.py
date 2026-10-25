@@ -10,6 +10,10 @@ class Settings(BaseSettings):
         validation_alias="CONDO_DATABASE_URL",
     )
     pdf_dir: Path = Path("./storage/pdfs")
+    zona_horaria: str = Field(
+        default="America/Santiago",
+        validation_alias="CONDO_TIMEZONE",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
