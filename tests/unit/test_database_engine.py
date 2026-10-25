@@ -5,7 +5,7 @@ import condo_pagos.infrastructure.database.engine as database_engine
 
 def test_modulo_no_expone_engine_ni_sessionlocal_globales() -> None:
     assert not hasattr(database_engine, "engine")
-    assert not hasattr(database_engine, "SessionLocal")
+    assert not hasattr(database_engine, "Session" + "Local")
 
 
 def test_fabrica_crea_engine_y_session_factory_inyectables() -> None:

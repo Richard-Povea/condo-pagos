@@ -59,8 +59,8 @@ def test_arranque_real_muestra_ventana_y_cierra_contenedor(monkeypatch: Any) -> 
     container = _FakeContainer()
     _app, window = _preparar_ui(monkeypatch)
 
+    import condo_pagos.bootstrap as bootstrap
     import condo_pagos.config as config
-    import condo_pagos.infrastructure.bootstrap as bootstrap
 
     monkeypatch.setattr(config, "Settings", lambda: object())
     monkeypatch.setattr(bootstrap, "build_container", lambda _settings: container)
