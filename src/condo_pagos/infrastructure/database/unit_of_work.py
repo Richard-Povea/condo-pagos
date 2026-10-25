@@ -1,7 +1,6 @@
 import json
 from collections.abc import Callable
 from datetime import datetime
-from typing import Callable
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
