@@ -1,6 +1,7 @@
 import json
 from collections.abc import Callable
 from datetime import datetime
+from typing import Callable
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -263,13 +264,20 @@ class SqlAlchemyPagosRepository(PagosRepository):
 
 
 class SqlAlchemyFoliosRepository(FoliosRepository):
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session,
+        zona_horaria: str = "America/Santiago",
+        reloj: Callable[[ZoneInfo], datetime] | None = None,
+    ) -> None:
         self.session = session
+        self.zona_horaria = zona_horaria
+        self.reloj = reloj or datetime.now
 
     def siguiente_folio(self) -> str:
-        # Obtener año actual en zona horaria de Chile para evitar desfases de cambio de año
-        ahora_cl = datetime.now(ZoneInfo("America/Santiago"))
-        anio_str = str(ahora_cl.year)
+        # El reloj recibe la zona configurada para evitar desfases al cambiar de año.
+        ahora_local = self.reloj(ZoneInfo(self.zona_horaria))
+        anio_str = str(ahora_local.year)
 
         # Upsert atómico en la tabla de folios
         stmt = text(
@@ -318,15 +326,24 @@ class SqlAlchemyComprobantesRepository(ComprobantesRepository):
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
-    def __init__(self, session_factory: Callable[[], Session]) -> None:
+    def __init__(
+        self,
+        session_factory: Callable[[], Session],
+        zona_horaria: str = "America/Santiago",
+        reloj: Callable[[ZoneInfo], datetime] | None = None,
+    ) -> None:
         self.session_factory = session_factory
+        self.zona_horaria = zona_horaria
+        self.reloj = reloj or datetime.now
 
     def __enter__(self) -> "SqlAlchemyUnitOfWork":
         self.session: Session = self.session_factory()
         self.unidades = SqlAlchemyUnidadesRepository(self.session)
         self.cargos = SqlAlchemyCargosRepository(self.session)
         self.pagos = SqlAlchemyPagosRepository(self.session)
-        self.folios = SqlAlchemyFoliosRepository(self.session)
+        self.folios = SqlAlchemyFoliosRepository(
+            self.session, zona_horaria=self.zona_horaria, reloj=self.reloj
+        )
         self.comprobantes = SqlAlchemyComprobantesRepository(self.session)
         return self
 
