@@ -10,6 +10,9 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import sessionmaker
 
+from condo_pagos.bootstrap import build_container
+from condo_pagos.config import Settings
+
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -100,6 +103,20 @@ def engine(plantilla_db):
                 text(f'DROP DATABASE IF EXISTS "{nombre}" WITH (FORCE)')
             )
         admin.dispose()
+
+
+@pytest.fixture
+def container_real(engine, tmp_path):
+    \"\"\"Contenedor real de la raíz única, ligado a una base privada por prueba.\"\"\"
+    settings = Settings(
+        condo_database_url=engine.url.render_as_string(hide_password=False),
+        pdf_dir=tmp_path,
+    )
+    container = build_container(settings)
+    try:
+        yield container
+    finally:
+        container.cerrar()
 
 
 @pytest.fixture
