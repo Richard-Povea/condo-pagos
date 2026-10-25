@@ -27,9 +27,11 @@ def test_bootstrap_solo_se_importa_desde_main_en_src() -> None:
             )
             for node in ast.walk(tree)
         )
-        if importa_bootstrap and path.relative_to(ROOT).as_posix() != "src/condo_pagos/main.py":
+        es_main = path.relative_to(ROOT).as_posix() == "src/condo_pagos/main.py"
+        if importa_bootstrap and not es_main:
             infracciones.append(path.relative_to(ROOT).as_posix())
     assert not infracciones, infracciones
+
 
 def test_las_pruebas_solo_construyen_el_contenedor_desde_el_fixture_comun() -> None:
     infracciones: list[str] = []
