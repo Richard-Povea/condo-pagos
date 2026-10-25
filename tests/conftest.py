@@ -106,7 +106,7 @@ def engine(plantilla_db):
 
 @pytest.fixture
 def container_real(engine, tmp_path):
-    \"\"\"Contenedor real de la raíz única, ligado a una base privada por prueba.\"\"\"
+    """Contenedor real de la raíz única, ligado a una base privada por prueba."""
     settings = Settings(
         condo_database_url=engine.url.render_as_string(hide_password=False),
         pdf_dir=tmp_path,
