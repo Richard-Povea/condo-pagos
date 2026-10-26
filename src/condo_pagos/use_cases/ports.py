@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -36,6 +37,18 @@ class PagosRepository(Protocol):
 
     @abstractmethod
     def obtener_por_id(self, pago_id: UUID) -> Pago | None:
+        ...
+
+    @abstractmethod
+    def obtener_folio_existente(self, pago_id: UUID) -> str | None:
+        """Consulta existencia sin cargar el pago en el identity map ORM."""
+        ...
+
+    @abstractmethod
+    def anular_si_vigente(
+        self, pago_id: UUID, *, operador: str, motivo: str, ahora: datetime
+    ) -> str | None:
+        """Anula con compare-and-set y devuelve el folio solo si ganó la carrera."""
         ...
 
     @abstractmethod

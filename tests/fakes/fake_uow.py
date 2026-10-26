@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime
 from uuid import UUID
 
 from condo_pagos.domain.comprobante import ComprobanteData
@@ -54,6 +55,22 @@ class FakePagosRepository(PagosRepository):
 
     def obtener_por_id(self, pago_id: UUID) -> Pago | None:
         return self._pagos.get(pago_id)
+
+    def obtener_folio_existente(self, pago_id: UUID) -> str | None:
+        pago = self._pagos.get(pago_id)
+        return pago.folio if pago is not None else None
+
+    def anular_si_vigente(
+        self, pago_id: UUID, *, operador: str, motivo: str, ahora: datetime
+    ) -> str | None:
+        pago = self._pagos.get(pago_id)
+        if pago is None or pago.estado != EstadoPago.VIGENTE:
+            return None
+        pago.estado = EstadoPago.ANULADO
+        pago.anulado_en = ahora
+        pago.anulado_por = operador.strip()
+        pago.motivo_anulacion = motivo.strip()
+        return pago.folio
 
     def existe_por_referencia(
         self, referencia: str | None, condominio_id: UUID, metodo_pago: str

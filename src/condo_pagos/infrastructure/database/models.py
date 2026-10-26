@@ -65,6 +65,11 @@ class CargoModel(Base):
     )
 
     __table_args__ = (
+        CheckConstraint("monto_original > 0", name="ck_cargos_monto"),
+        CheckConstraint(
+            "saldo >= 0 AND saldo <= monto_original",
+            name="ck_cargos_saldo",
+        ),
         Index("idx_cargos_unidad_saldo", "unidad_id", "saldo"),
     )
 
@@ -106,6 +111,9 @@ class PagoModel(Base):
             name="fk_pagos_unidad_condominio",
         ),
         UniqueConstraint("id", "condominio_id", name="uq_pagos_id_condominio"),
+        UniqueConstraint("folio", name="uq_pagos_folio"),
+        CheckConstraint("monto > 0", name="ck_pagos_monto"),
+        CheckConstraint("exceso >= 0", name="ck_pagos_exceso"),
         CheckConstraint(
             "metodo_pago <> 'TRANSFERENCIA' OR referencia IS NOT NULL",
             name="ck_pagos_referencia_requerida",
@@ -149,7 +157,9 @@ class FolioSequenceModel(Base):
 class ComprobanteModel(Base):
     __tablename__ = "comprobantes"
 
-    folio: Mapped[str] = mapped_column(String(20), primary_key=True)
+    folio: Mapped[str] = mapped_column(
+        String(20), ForeignKey("pagos.folio", name="fk_comprobantes_pago"), primary_key=True
+    )
     fecha_emision: Mapped[date] = mapped_column(Date, nullable=False)
     unidad_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
     residente_nombre: Mapped[str] = mapped_column(String(255), nullable=False)

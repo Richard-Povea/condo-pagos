@@ -322,6 +322,65 @@ def _deriva_esquema(connection) -> list[str]:
                 f"{columnas_destino!r}"
             )
 
+    # Confirmación explícita mediante pg_get_constraintdef para las nuevas reglas.
+    checks_nuevos = {
+        ("cargos", "ck_cargos_monto"),
+        ("cargos", "ck_cargos_saldo"),
+        ("pagos", "ck_pagos_monto"),
+        ("pagos", "ck_pagos_exceso"),
+    }
+    for tabla, nombre in checks_nuevos:
+        definicion_db = connection.execute(
+            text(
+                """
+                SELECT pg_get_constraintdef(oid)
+                FROM pg_constraint
+                WHERE conrelid = CAST(:tabla AS regclass)
+                  AND conname = :nombre
+                  AND contype = 'c'
+                """
+            ),
+            {"tabla": f"gc.{tabla}", "nombre": nombre},
+        ).scalar_one_or_none()
+        modelo = next(
+            (
+                str(constraint.sqltext)
+                for constraint in Base.metadata.tables[tabla].constraints
+                if constraint.name == nombre
+            ),
+            None,
+        )
+        if definicion_db is None:
+            problemas.append(f"{tabla}: falta {nombre} en pg_get_constraintdef")
+        elif modelo is None or (
+            _normalizar_sql(definicion_db.removeprefix("CHECK "))
+            != _normalizar_sql(modelo)
+        ):
+            problemas.append(
+                f"{tabla}: pg_get_constraintdef difiere para {nombre}: {definicion_db}"
+            )
+
+    fk_comprobante = connection.execute(
+        text(
+            """
+            SELECT pg_get_constraintdef(oid)
+            FROM pg_constraint
+            WHERE conrelid = 'gc.comprobantes'::regclass
+              AND conname = 'fk_comprobantes_pago'
+              AND contype = 'f'
+            """
+        )
+    ).scalar_one_or_none()
+    if fk_comprobante is None:
+        problemas.append("comprobantes: falta fk_comprobantes_pago en pg_get_constraintdef")
+    elif _normalizar_sql(fk_comprobante) != _normalizar_sql(
+        "FOREIGN KEY (folio) REFERENCES pagos(folio)"
+    ):
+        problemas.append(
+            "comprobantes: definición incorrecta de fk_comprobantes_pago: "
+            f"{fk_comprobante}"
+        )
+
     return problemas
 
 
@@ -417,5 +476,16 @@ def test_deriva_detecta_check_referencia_requerida_ausente(engine) -> None:
 def test_deriva_detecta_check_referencia_no_vacia_ausente(engine) -> None:
     _mutacion_falla(
         "ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_referencia_no_vacia",
+        engine,
+    )
+
+
+def test_deriva_detecta_check_saldo_cargo_ausente(engine) -> None:
+    _mutacion_falla("ALTER TABLE gc.cargos DROP CONSTRAINT ck_cargos_saldo", engine)
+
+
+def test_deriva_detecta_fk_comprobante_pago_ausente(engine) -> None:
+    _mutacion_falla(
+        "ALTER TABLE gc.comprobantes DROP CONSTRAINT fk_comprobantes_pago",
         engine,
     )

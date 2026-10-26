@@ -47,7 +47,9 @@ CREATE TABLE IF NOT EXISTS gc.cargos (
     monto_original NUMERIC(12, 0) NOT NULL,
     saldo NUMERIC(12, 0) NOT NULL,
     vencimiento DATE NOT NULL,
-    estado gc.estado_cargo_enum NOT NULL DEFAULT 'PENDIENTE'
+    estado gc.estado_cargo_enum NOT NULL DEFAULT 'PENDIENTE',
+    CONSTRAINT ck_cargos_monto CHECK (monto_original > 0),
+    CONSTRAINT ck_cargos_saldo CHECK (saldo >= 0 AND saldo <= monto_original)
 );
 
 CREATE INDEX IF NOT EXISTS idx_cargos_unidad_saldo ON gc.cargos(unidad_id, saldo);
@@ -72,6 +74,9 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
         FOREIGN KEY (unidad_id, condominio_id)
         REFERENCES gc.unidades (id, condominio_id),
     CONSTRAINT uq_pagos_id_condominio UNIQUE (id, condominio_id),
+    CONSTRAINT uq_pagos_folio UNIQUE (folio),
+    CONSTRAINT ck_pagos_monto CHECK (monto > 0),
+    CONSTRAINT ck_pagos_exceso CHECK (exceso >= 0),
     CONSTRAINT ck_pagos_referencia_requerida CHECK (
         metodo_pago <> 'TRANSFERENCIA' OR referencia IS NOT NULL
     ),
@@ -92,7 +97,7 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
 );
 
 -- La referencia es única por condominio y método, solo entre pagos vigentes.
-CREATE UNIQUE INDEX uq_pagos_referencia
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pagos_referencia
     ON gc.pagos (condominio_id, metodo_pago, referencia)
     WHERE referencia IS NOT NULL AND estado = 'VIGENTE';
 
@@ -112,7 +117,8 @@ CREATE TABLE IF NOT EXISTS gc.comprobantes (
     hash_anterior CHAR(64),
     hash_sha256 CHAR(64) NOT NULL,
     pdf_ruta TEXT,
-    datos_json JSONB NOT NULL
+    datos_json JSONB NOT NULL,
+    CONSTRAINT fk_comprobantes_pago FOREIGN KEY (folio) REFERENCES gc.pagos (folio)
 );
 
 -- El snapshot y los hashes del comprobante son inmutables.
