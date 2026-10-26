@@ -76,7 +76,74 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
         metodo_pago <> 'TRANSFERENCIA' OR referencia IS NOT NULL
     ),
     CONSTRAINT ck_pagos_referencia_no_vacia CHECK (
-        referencia IS NULL OR length(btrim(referencia)) > 0
+        referencia IS NULL OR referencia !~ '^[[:space:]]*
+    ),
+    CONSTRAINT ck_pagos_anulacion CHECK (
+        (estado = 'ANULADO'
+            AND anulado_en IS NOT NULL
+            AND anulado_por IS NOT NULL
+            AND length(btrim(motivo_anulacion)) >= 10)
+        OR
+        (estado <> 'ANULADO'
+            AND anulado_en IS NULL
+            AND anulado_por IS NULL
+            AND motivo_anulacion IS NULL)
+    )
+);
+
+-- La referencia es única por condominio y método, solo entre pagos vigentes.
+CREATE UNIQUE INDEX uq_pagos_referencia
+    ON gc.pagos (condominio_id, metodo_pago, referencia)
+    WHERE referencia IS NOT NULL AND estado = 'VIGENTE';
+
+CREATE TABLE IF NOT EXISTS gc.folios_secuencia (
+    anio VARCHAR(4) PRIMARY KEY,
+    ultimo_numero INT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS gc.comprobantes (
+    folio VARCHAR(20) PRIMARY KEY,
+    fecha_emision DATE NOT NULL,
+    unidad_id UUID NOT NULL,
+    residente_nombre VARCHAR(255) NOT NULL,
+    monto_pagado NUMERIC(12, 0) NOT NULL,
+    metodo_pago VARCHAR(50) NOT NULL,
+    exceso NUMERIC(12, 0) NOT NULL,
+    hash_anterior CHAR(64),
+    hash_sha256 CHAR(64) NOT NULL,
+    pdf_ruta TEXT,
+    datos_json JSONB NOT NULL
+);
+
+-- El snapshot y los hashes del comprobante son inmutables.
+-- pdf_ruta puede actualizarse para registrar la ubicación del PDF regenerado.
+CREATE OR REPLACE FUNCTION gc.fn_prevenir_modificacion_comprobante()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.folio IS DISTINCT FROM OLD.folio
+       OR NEW.fecha_emision IS DISTINCT FROM OLD.fecha_emision
+       OR NEW.unidad_id IS DISTINCT FROM OLD.unidad_id
+       OR NEW.residente_nombre IS DISTINCT FROM OLD.residente_nombre
+       OR NEW.monto_pagado IS DISTINCT FROM OLD.monto_pagado
+       OR NEW.metodo_pago IS DISTINCT FROM OLD.metodo_pago
+       OR NEW.exceso IS DISTINCT FROM OLD.exceso
+       OR NEW.hash_anterior IS DISTINCT FROM OLD.hash_anterior
+       OR NEW.hash_sha256 IS DISTINCT FROM OLD.hash_sha256
+       OR NEW.datos_json IS DISTINCT FROM OLD.datos_json THEN
+        RAISE EXCEPTION 'El folio, snapshot y hashes del comprobante son inmutables.';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_comprobantes_inmutables ON gc.comprobantes;
+CREATE TRIGGER trg_comprobantes_inmutables
+BEFORE UPDATE ON gc.comprobantes
+FOR EACH ROW
+EXECUTE FUNCTION gc.fn_prevenir_modificacion_comprobante();
+
+COMMIT;
+
     ),
     CONSTRAINT ck_pagos_anulacion CHECK (
         (estado = 'ANULADO'
