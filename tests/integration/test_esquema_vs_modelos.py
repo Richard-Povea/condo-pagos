@@ -397,3 +397,24 @@ def test_deriva_detecta_hash_sha256_que_deja_de_ser_char_64(engine) -> None:
 
 def test_deriva_detecta_check_de_anulacion_ausente(engine) -> None:
     _mutacion_falla("ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_anulacion", engine)
+
+
+def test_deriva_detecta_enum_metodo_pago_ausente(engine) -> None:
+    _mutacion_falla([
+        "ALTER TABLE gc.pagos ALTER COLUMN metodo_pago TYPE VARCHAR(50) USING metodo_pago::text",
+        "DROP TYPE gc.metodo_pago_enum",
+    ], engine)
+
+
+def test_deriva_detecta_check_referencia_requerida_ausente(engine) -> None:
+    _mutacion_falla(
+        "ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_referencia_requerida",
+        engine,
+    )
+
+
+def test_deriva_detecta_check_referencia_no_vacia_ausente(engine) -> None:
+    _mutacion_falla(
+        "ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_referencia_no_vacia",
+        engine,
+    )
