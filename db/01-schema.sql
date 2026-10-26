@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
         metodo_pago <> 'TRANSFERENCIA' OR referencia IS NOT NULL
     ),
     CONSTRAINT ck_pagos_referencia_no_vacia CHECK (
-        referencia IS NULL OR referencia !~ '^[[:space:]]*
+        referencia IS NULL OR length(regexp_replace(referencia, '[[:space:]]', '', 'g')) > 0
     ),
     CONSTRAINT ck_pagos_anulacion CHECK (
         (estado = 'ANULADO'
