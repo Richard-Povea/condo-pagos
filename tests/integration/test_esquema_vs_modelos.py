@@ -335,7 +335,7 @@ def _deriva_esquema(connection) -> list[str]:
                 """
                 SELECT pg_get_constraintdef(oid)
                 FROM pg_constraint
-                WHERE conrelid = :tabla::regclass
+                WHERE conrelid = CAST(:tabla AS regclass)
                   AND conname = :nombre
                   AND contype = 'c'
                 """
