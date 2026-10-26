@@ -97,6 +97,7 @@ class SqlAlchemyCargosRepository(CargosRepository):
             SELECT id, unidad_id, periodo, monto_original, saldo, vencimiento, estado
             FROM cargos
             WHERE id = ANY(:cargo_ids)
+            ORDER BY vencimiento ASC, id ASC
             FOR UPDATE
             """
         )
@@ -201,6 +202,37 @@ class SqlAlchemyPagosRepository(PagosRepository):
         )
         pago._establecer_condominio_id(model.condominio_id)
         return pago
+
+    def obtener_folio_existente(self, pago_id: UUID) -> str | None:
+        """Consulta por SQL directo para no poblar el identity map del ORM."""
+        return self.session.execute(
+            text("SELECT folio FROM gc.pagos WHERE id = :id"),
+            {"id": pago_id},
+        ).scalar_one_or_none()
+
+    def anular_si_vigente(
+        self, pago_id: UUID, *, operador: str, motivo: str, ahora: object
+    ) -> str | None:
+        """Anulación compare-and-set: solo una transacción puede cambiar VIGENTE."""
+        return self.session.execute(
+            text(
+                """
+                UPDATE gc.pagos
+                SET estado = 'ANULADO',
+                    anulado_en = :ahora,
+                    anulado_por = :operador,
+                    motivo_anulacion = :motivo
+                WHERE id = :id AND estado = 'VIGENTE'
+                RETURNING folio
+                """
+            ),
+            {
+                "id": pago_id,
+                "ahora": ahora,
+                "operador": operador,
+                "motivo": motivo,
+            },
+        ).scalar_one_or_none()
 
     def existe_por_referencia(
         self, referencia: str | None, condominio_id: UUID, metodo_pago: str
