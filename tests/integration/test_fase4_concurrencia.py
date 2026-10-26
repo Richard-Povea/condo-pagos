@@ -509,4 +509,4 @@ def test_checks_unique_y_fk_rechazan_sql_directo(session_local, engine):
          1000, 'EFECTIVO', 0, :hash, '{}'::jsonb)""",
         {"unidad_id": unidad_id, "hash": "a" * 64},
     )
-\n
+
