@@ -352,8 +352,13 @@ def _deriva_esquema(connection) -> list[str]:
         )
         if definicion_db is None:
             problemas.append(f"{tabla}: falta {nombre} en pg_get_constraintdef")
-        elif modelo is None or _normalizar_sql(definicion_db.removeprefix("CHECK ")) != _normalizar_sql(modelo):
-            problemas.append(f"{tabla}: pg_get_constraintdef difiere para {nombre}: {definicion_db}")
+        elif modelo is None or (
+            _normalizar_sql(definicion_db.removeprefix("CHECK "))
+            != _normalizar_sql(modelo)
+        ):
+            problemas.append(
+                f"{tabla}: pg_get_constraintdef difiere para {nombre}: {definicion_db}"
+            )
 
     fk_comprobante = connection.execute(
         text(
@@ -371,7 +376,10 @@ def _deriva_esquema(connection) -> list[str]:
     elif _normalizar_sql(fk_comprobante) != _normalizar_sql(
         "FOREIGN KEY (folio) REFERENCES gc.pagos(folio)"
     ):
-        problemas.append(f"comprobantes: definición incorrecta de fk_comprobantes_pago: {fk_comprobante}")
+        problemas.append(
+            "comprobantes: definición incorrecta de fk_comprobantes_pago: "
+            f"{fk_comprobante}"
+        )
 
     return problemas
 
