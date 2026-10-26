@@ -236,7 +236,7 @@ def test_tarjeta_no_esta_habilitada(py_fixture_uow):
         fecha_pago=date(2026, 10, 12),
     )
 
-    with pytest.raises(DominioError, match="TARJETA aún no está habilitado"):
+    with pytest.raises(DominioError, match="TARJETA no está habilitado"):
         RegistrarPagoUseCase(uow).ejecutar(cmd)
 
     assert len(uow._pagos_store) == 0
