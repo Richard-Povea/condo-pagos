@@ -258,6 +258,7 @@ def test_8_plantilla_contiene_esquema_v2_y_seeds(engine):
     assert version == ESQUEMA_VERSION_ESPERADA
     assert pago_semilla == 1
 
+
 def _registrar_pago_de_prueba(session_local, unidad_id, referencia):
     with SqlAlchemyUnitOfWork(session_local) as uow:
         return RegistrarPagoUseCase(uow).ejecutar(
@@ -276,8 +277,8 @@ def _registrar_pago_de_prueba(session_local, unidad_id, referencia):
 def test_doble_anulacion_simultanea(session_local, engine):
     """Dos anulaciones simultáneas restituyen el saldo una sola vez."""
     unidad_id, cargo_id = uuid4(), uuid4()
-    with SqlAlchemyUnitOfWork(session_local) as uow:
-        _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"))
+    uow_prep = SqlAlchemyUnitOfWork(session_local)
+    _crear_unidad_y_cargo(uow_prep, unidad_id, cargo_id, monto=Decimal("50000"))
     pago = _registrar_pago_de_prueba(session_local, unidad_id, "REF-ANULACION-ATOMICA")
     with engine.connect() as connection:
         pago_id = connection.execute(
@@ -326,9 +327,13 @@ def test_doble_anulacion_simultanea(session_local, engine):
 def test_anulacion_restaura_todos_los_cargos_del_comprobante(session_local, engine):
     unidad_id = uuid4()
     cargo_ids = [uuid4(), uuid4()]
-    with SqlAlchemyUnitOfWork(session_local) as uow:
-        _crear_unidad_y_cargo(uow, unidad_id, cargo_ids[0], monto=Decimal("30000"), codigo="801")
-        _crear_unidad_y_cargo(uow, unidad_id, cargo_ids[1], monto=Decimal("20000"), codigo="801")
+    uow_prep = SqlAlchemyUnitOfWork(session_local)
+    _crear_unidad_y_cargo(
+        uow_prep, unidad_id, cargo_ids[0], monto=Decimal("30000"), codigo="801"
+    )
+    _crear_unidad_y_cargo(
+        uow_prep, unidad_id, cargo_ids[1], monto=Decimal("20000"), codigo="801"
+    )
 
     with SqlAlchemyUnitOfWork(session_local) as uow:
         resultado = RegistrarPagoUseCase(uow).ejecutar(
@@ -369,8 +374,8 @@ def test_anulacion_restaura_todos_los_cargos_del_comprobante(session_local, engi
 
 def test_cargo_faltante_revierte_transaccion_de_anulacion(session_local, engine):
     unidad_id, cargo_id = uuid4(), uuid4()
-    with SqlAlchemyUnitOfWork(session_local) as uow:
-        _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"))
+    uow_prep = SqlAlchemyUnitOfWork(session_local)
+    _crear_unidad_y_cargo(uow_prep, unidad_id, cargo_id, monto=Decimal("50000"))
     resultado = _registrar_pago_de_prueba(session_local, unidad_id, "REF-CARGO-FALTANTE")
     with engine.connect() as connection:
         pago_id = connection.execute(
@@ -398,9 +403,13 @@ def test_cargo_faltante_revierte_transaccion_de_anulacion(session_local, engine)
 def test_folio_no_se_reutiliza_despues_de_anular(session_local, engine):
     unidad_a, cargo_a = uuid4(), uuid4()
     unidad_b, cargo_b = uuid4(), uuid4()
-    with SqlAlchemyUnitOfWork(session_local) as uow:
-        _crear_unidad_y_cargo(uow, unidad_a, cargo_a, monto=Decimal("50000"), codigo="901")
-        _crear_unidad_y_cargo(uow, unidad_b, cargo_b, monto=Decimal("50000"), codigo="902")
+    uow_prep = SqlAlchemyUnitOfWork(session_local)
+    _crear_unidad_y_cargo(
+        uow_prep, unidad_a, cargo_a, monto=Decimal("50000"), codigo="901"
+    )
+    _crear_unidad_y_cargo(
+        uow_prep, unidad_b, cargo_b, monto=Decimal("50000"), codigo="902"
+    )
 
     primer_pago = _registrar_pago_de_prueba(session_local, unidad_a, "REF-FOLIO-UNO")
     with engine.connect() as connection:
@@ -426,8 +435,10 @@ def test_folio_no_se_reutiliza_despues_de_anular(session_local, engine):
 def test_checks_unique_y_fk_rechazan_sql_directo(session_local, engine):
     """Los constraints nuevos protegen también escrituras que omiten los casos de uso."""
     unidad_id, cargo_id = uuid4(), uuid4()
-    with SqlAlchemyUnitOfWork(session_local) as uow:
-        _crear_unidad_y_cargo(uow, unidad_id, cargo_id, monto=Decimal("50000"), codigo="991")
+    uow_prep = SqlAlchemyUnitOfWork(session_local)
+    _crear_unidad_y_cargo(
+        uow_prep, unidad_id, cargo_id, monto=Decimal("50000"), codigo="991"
+    )
     with engine.connect() as connection:
         condominio_id = connection.execute(
             text("SELECT condominio_id FROM gc.unidades WHERE id = :id"),
