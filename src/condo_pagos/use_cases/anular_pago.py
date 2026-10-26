@@ -18,8 +18,8 @@ class AnularPagoUseCase:
 
             folio = self.uow.pagos.anular_si_vigente(
                 pago_id,
-                operador=operador,
-                motivo=motivo,
+                operador=operador.strip(),
+                motivo=motivo.strip(),
                 ahora=datetime.now(UTC),
             )
             if folio is None:
