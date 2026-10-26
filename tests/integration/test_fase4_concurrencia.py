@@ -385,12 +385,14 @@ def test_cargo_faltante_revierte_transaccion_de_anulacion(session_local, engine)
     with engine.begin() as connection:
         connection.execute(text("DELETE FROM gc.cargos WHERE id = :id"), {"id": cargo_id})
 
-    with pytest.raises(DominioError, match="No se encontró el cargo"):
-        with SqlAlchemyUnitOfWork(session_local) as uow:
-            AnularPagoUseCase(uow).ejecutar(
-                pago_id, operador="OPERADOR_TEST",
-                motivo="Anulación que debe fallar por cargo faltante",
-            )
+    with (
+        pytest.raises(DominioError, match="No se encontró el cargo"),
+        SqlAlchemyUnitOfWork(session_local) as uow,
+    ):
+        AnularPagoUseCase(uow).ejecutar(
+            pago_id, operador="OPERADOR_TEST",
+            motivo="Anulación que debe fallar por cargo faltante",
+        )
 
     with engine.connect() as connection:
         estado = connection.execute(
