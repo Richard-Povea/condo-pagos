@@ -211,7 +211,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
         ).scalar_one_or_none()
 
     def anular_si_vigente(
-        self, pago_id: UUID, *, operador: str, motivo: str, ahora: object
+        self, pago_id: UUID, *, operador: str, motivo: str, ahora: datetime
     ) -> str | None:
         """Anulación compare-and-set: solo una transacción puede cambiar VIGENTE."""
         return self.session.execute(
