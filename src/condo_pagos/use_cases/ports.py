@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -45,7 +46,7 @@ class PagosRepository(Protocol):
 
     @abstractmethod
     def anular_si_vigente(
-        self, pago_id: UUID, *, operador: str, motivo: str, ahora: object
+        self, pago_id: UUID, *, operador: str, motivo: str, ahora: datetime
     ) -> str | None:
         """Anula con compare-and-set y devuelve el folio solo si ganó la carrera."""
         ...
