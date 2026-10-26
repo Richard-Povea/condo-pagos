@@ -24,7 +24,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from condo_pagos.domain.entities import EstadoCargo, EstadoPago
+from condo_pagos.domain.entities import EstadoCargo, EstadoPago, MetodoPago
 
 
 class Base(DeclarativeBase):
@@ -80,7 +80,10 @@ class PagoModel(Base):
     )
     condominio_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
-    metodo_pago: Mapped[str] = mapped_column(String(50), nullable=False)
+    metodo_pago: Mapped[MetodoPago] = mapped_column(
+        PgEnum(MetodoPago, name="metodo_pago_enum", create_type=False),
+        nullable=False,
+    )
     referencia: Mapped[str | None] = mapped_column(String(100), nullable=True)
     residente_nombre: Mapped[str] = mapped_column(String(255), nullable=False)
     registrado_por: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -103,6 +106,14 @@ class PagoModel(Base):
             name="fk_pagos_unidad_condominio",
         ),
         UniqueConstraint("id", "condominio_id", name="uq_pagos_id_condominio"),
+        CheckConstraint(
+            "metodo_pago <> 'TRANSFERENCIA' OR referencia IS NOT NULL",
+            name="ck_pagos_referencia_requerida",
+        ),
+        CheckConstraint(
+            "referencia IS NULL OR length(btrim(referencia)) > 0",
+            name="ck_pagos_referencia_no_vacia",
+        ),
         CheckConstraint(
             """(
                 (estado = 'ANULADO'
