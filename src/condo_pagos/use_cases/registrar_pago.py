@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from condo_pagos.domain.comprobante import ComprobanteData, LineaCargo
-from condo_pagos.domain.entities import EstadoPago, Pago
+from condo_pagos.domain.entities import EstadoPago, MetodoPago, Pago
 from condo_pagos.domain.errors import DominioError
 from condo_pagos.domain.services import distribuir_pago
 from condo_pagos.use_cases.dto import ComprobanteEmitido, RegistrarPagoCmd
@@ -13,6 +13,16 @@ class RegistrarPagoUseCase:
         self.uow = uow
 
     def ejecutar(self, cmd: RegistrarPagoCmd) -> ComprobanteEmitido:
+        metodo_pago = cmd.metodo_pago.strip().upper()
+        if metodo_pago not in {MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA}:
+            raise DominioError(
+                "El método debe ser EFECTIVO o TRANSFERENCIA; TARJETA no está habilitado."
+            )
+
+        referencia = (cmd.referencia or "").strip() or None
+        if metodo_pago == MetodoPago.TRANSFERENCIA and referencia is None:
+            raise DominioError("La transferencia debe tener una referencia no vacía.")
+
         with self.uow:
             # 1. Validar que la unidad exista y esté activa
             unidad = self.uow.unidades.obtener_por_id(cmd.unidad_id)
@@ -22,12 +32,12 @@ class RegistrarPagoUseCase:
                 raise DominioError(f"La unidad {unidad.codigo} se encuentra inactiva.")
 
             # 2. Validar referencia de pago duplicada
-            if cmd.referencia and self.uow.pagos.existe_por_referencia(
-                cmd.referencia, unidad.condominio_id, cmd.metodo_pago
+            if referencia and self.uow.pagos.existe_por_referencia(
+                referencia, unidad.condominio_id, metodo_pago
             ):
                 raise DominioError(
-                    f"Ya existe un pago registrado con la referencia '{cmd.referencia}'."
-                    )
+                    f"Ya existe un pago registrado con la referencia '{referencia}'."
+                )
 
             # 3. Obtener cargos pendientes de la unidad
             cargos_pendientes = self.uow.cargos.obtener_pendientes_por_unidad(cmd.unidad_id)
@@ -48,8 +58,8 @@ class RegistrarPagoUseCase:
                 id=pago_id,
                 unidad_id=cmd.unidad_id,
                 monto=cmd.monto,
-                metodo_pago=cmd.metodo_pago,
-                referencia=cmd.referencia,
+                metodo_pago=metodo_pago,
+                referencia=referencia,
                 residente_nombre=cmd.residente_nombre,
                 fecha=cmd.fecha_pago,
                 folio=folio,
@@ -83,7 +93,7 @@ class RegistrarPagoUseCase:
                 unidad_id=cmd.unidad_id,
                 residente_nombre=cmd.residente_nombre,
                 monto_pagado=cmd.monto,
-                metodo_pago=cmd.metodo_pago,
+                metodo_pago=metodo_pago,
                 lineas=tuple(lineas_comprobante),
                 exceso=resultado_distribucion.exceso,
             )

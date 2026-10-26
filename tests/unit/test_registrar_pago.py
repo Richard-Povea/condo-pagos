@@ -203,3 +203,61 @@ def test_registrar_pago_referencia_duplicada(py_fixture_uow):
     # Segundo registro con la misma referencia debe fallar
     with pytest.raises(DominioError, match="Ya existe un pago registrado"):
         caso_uso.ejecutar(cmd)
+
+def test_transferencia_requiere_referencia(py_fixture_uow):
+    uow = py_fixture_uow
+    unidad_id = list(uow._unidades_store.keys())[0]
+    cmd = RegistrarPagoCmd(
+        unidad_id=unidad_id,
+        monto=Decimal("10000"),
+        metodo_pago="TRANSFERENCIA",
+        referencia="   ",
+        residente_nombre="Residente de prueba",
+        registrado_por="OPERADOR_TEST",
+        fecha_pago=date(2026, 10, 12),
+    )
+
+    with pytest.raises(DominioError, match="transferencia debe tener una referencia"):
+        RegistrarPagoUseCase(uow).ejecutar(cmd)
+
+    assert len(uow._pagos_store) == 0
+
+
+def test_tarjeta_no_esta_habilitada(py_fixture_uow):
+    uow = py_fixture_uow
+    unidad_id = list(uow._unidades_store.keys())[0]
+    cmd = RegistrarPagoCmd(
+        unidad_id=unidad_id,
+        monto=Decimal("10000"),
+        metodo_pago="TARJETA",
+        referencia=None,
+        residente_nombre="Residente de prueba",
+        registrado_por="OPERADOR_TEST",
+        fecha_pago=date(2026, 10, 12),
+    )
+
+    with pytest.raises(DominioError, match="TARJETA no está habilitado"):
+        RegistrarPagoUseCase(uow).ejecutar(cmd)
+
+    assert len(uow._pagos_store) == 0
+
+
+def test_normaliza_metodo_y_referencia_de_pago(py_fixture_uow):
+    uow = py_fixture_uow
+    unidad_id = list(uow._unidades_store.keys())[0]
+    cmd = RegistrarPagoCmd(
+        unidad_id=unidad_id,
+        monto=Decimal("10000"),
+        metodo_pago=" transferencia ",
+        referencia="  REF-ESPACIOS  ",
+        residente_nombre="Residente de prueba",
+        registrado_por="OPERADOR_TEST",
+        fecha_pago=date(2026, 10, 12),
+    )
+
+    RegistrarPagoUseCase(uow).ejecutar(cmd)
+
+    pago = next(iter(uow._pagos_store.values()))
+    assert pago.metodo_pago == "TRANSFERENCIA"
+    assert pago.referencia == "REF-ESPACIOS"
+
