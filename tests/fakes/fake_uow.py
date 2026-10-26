@@ -68,8 +68,8 @@ class FakePagosRepository(PagosRepository):
             return None
         pago.estado = EstadoPago.ANULADO
         pago.anulado_en = ahora
-        pago.anulado_por = operador
-        pago.motivo_anulacion = motivo
+        pago.anulado_por = operador.strip()
+        pago.motivo_anulacion = motivo.strip()
         return pago.folio
 
     def existe_por_referencia(
