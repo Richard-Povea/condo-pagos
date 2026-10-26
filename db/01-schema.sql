@@ -15,6 +15,12 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+DO $$ BEGIN
+    CREATE TYPE gc.metodo_pago_enum AS ENUM ('EFECTIVO', 'TRANSFERENCIA', 'TARJETA');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 -- Control de versión del esquema: v2 no se ha desplegado y solo se usa en desarrollo.
 CREATE TABLE IF NOT EXISTS gc.schema_info (
     version INT NOT NULL
@@ -51,7 +57,7 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
     unidad_id UUID NOT NULL REFERENCES gc.unidades(id),
     condominio_id UUID NOT NULL,
     monto NUMERIC(12, 0) NOT NULL,
-    metodo_pago VARCHAR(50) NOT NULL,
+    metodo_pago gc.metodo_pago_enum NOT NULL,
     referencia VARCHAR(100),
     residente_nombre VARCHAR(255) NOT NULL,
     registrado_por VARCHAR(80) NOT NULL,
@@ -66,6 +72,12 @@ CREATE TABLE IF NOT EXISTS gc.pagos (
         FOREIGN KEY (unidad_id, condominio_id)
         REFERENCES gc.unidades (id, condominio_id),
     CONSTRAINT uq_pagos_id_condominio UNIQUE (id, condominio_id),
+    CONSTRAINT ck_pagos_referencia_requerida CHECK (
+        metodo_pago <> 'TRANSFERENCIA' OR referencia IS NOT NULL
+    ),
+    CONSTRAINT ck_pagos_referencia_no_vacia CHECK (
+        referencia IS NULL OR length(btrim(referencia)) > 0
+    ),
     CONSTRAINT ck_pagos_anulacion CHECK (
         (estado = 'ANULADO'
             AND anulado_en IS NOT NULL
@@ -103,11 +115,24 @@ CREATE TABLE IF NOT EXISTS gc.comprobantes (
     datos_json JSONB NOT NULL
 );
 
--- Trigger de inmutabilidad: B no añade estado al comprobante ni permite alterar su snapshot/hash.
+-- El snapshot y los hashes del comprobante son inmutables.
+-- pdf_ruta puede actualizarse para registrar la ubicación del PDF regenerado.
 CREATE OR REPLACE FUNCTION gc.fn_prevenir_modificacion_comprobante()
 RETURNS TRIGGER AS $$
 BEGIN
-    RAISE EXCEPTION 'Los comprobantes emitidos son inmutables y no pueden ser modificados.';
+    IF NEW.folio IS DISTINCT FROM OLD.folio
+       OR NEW.fecha_emision IS DISTINCT FROM OLD.fecha_emision
+       OR NEW.unidad_id IS DISTINCT FROM OLD.unidad_id
+       OR NEW.residente_nombre IS DISTINCT FROM OLD.residente_nombre
+       OR NEW.monto_pagado IS DISTINCT FROM OLD.monto_pagado
+       OR NEW.metodo_pago IS DISTINCT FROM OLD.metodo_pago
+       OR NEW.exceso IS DISTINCT FROM OLD.exceso
+       OR NEW.hash_anterior IS DISTINCT FROM OLD.hash_anterior
+       OR NEW.hash_sha256 IS DISTINCT FROM OLD.hash_sha256
+       OR NEW.datos_json IS DISTINCT FROM OLD.datos_json THEN
+        RAISE EXCEPTION 'El folio, snapshot y hashes del comprobante son inmutables.';
+    END IF;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
