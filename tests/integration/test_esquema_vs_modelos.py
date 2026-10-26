@@ -374,7 +374,7 @@ def _deriva_esquema(connection) -> list[str]:
     if fk_comprobante is None:
         problemas.append("comprobantes: falta fk_comprobantes_pago en pg_get_constraintdef")
     elif _normalizar_sql(fk_comprobante) != _normalizar_sql(
-        "FOREIGN KEY (folio) REFERENCES gc.pagos(folio)"
+        "FOREIGN KEY (folio) REFERENCES pagos(folio)"
     ):
         problemas.append(
             "comprobantes: definición incorrecta de fk_comprobantes_pago: "
