@@ -401,6 +401,7 @@ def test_deriva_detecta_check_de_anulacion_ausente(engine) -> None:
 
 def test_deriva_detecta_enum_metodo_pago_ausente(engine) -> None:
     _mutacion_falla([
+        "ALTER TABLE gc.pagos DROP CONSTRAINT ck_pagos_referencia_requerida",
         "ALTER TABLE gc.pagos ALTER COLUMN metodo_pago TYPE VARCHAR(50) USING metodo_pago::text",
         "DROP TYPE gc.metodo_pago_enum",
     ], engine)
