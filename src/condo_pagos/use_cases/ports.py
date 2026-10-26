@@ -39,6 +39,18 @@ class PagosRepository(Protocol):
         ...
 
     @abstractmethod
+    def obtener_folio_existente(self, pago_id: UUID) -> str | None:
+        """Consulta existencia sin cargar el pago en el identity map ORM."""
+        ...
+
+    @abstractmethod
+    def anular_si_vigente(
+        self, pago_id: UUID, *, operador: str, motivo: str, ahora: object
+    ) -> str | None:
+        """Anula con compare-and-set y devuelve el folio solo si ganó la carrera."""
+        ...
+
+    @abstractmethod
     def existe_por_referencia(
         self, referencia: str | None, condominio_id: UUID, metodo_pago: str
     ) -> bool:
