@@ -107,8 +107,7 @@ CREATE TABLE IF NOT EXISTS gc.folios_secuencia (
 );
 
 CREATE TABLE IF NOT EXISTS gc.comprobantes (
-    folio VARCHAR(20) PRIMARY KEY REFERENCES gc.pagos(folio)
-        CONSTRAINT fk_comprobantes_pago,
+    folio VARCHAR(20) PRIMARY KEY,
     fecha_emision DATE NOT NULL,
     unidad_id UUID NOT NULL,
     residente_nombre VARCHAR(255) NOT NULL,
@@ -118,7 +117,8 @@ CREATE TABLE IF NOT EXISTS gc.comprobantes (
     hash_anterior CHAR(64),
     hash_sha256 CHAR(64) NOT NULL,
     pdf_ruta TEXT,
-    datos_json JSONB NOT NULL
+    datos_json JSONB NOT NULL,
+    CONSTRAINT fk_comprobantes_pago FOREIGN KEY (folio) REFERENCES gc.pagos (folio)
 );
 
 -- El snapshot y los hashes del comprobante son inmutables.
