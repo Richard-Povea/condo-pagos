@@ -6,6 +6,7 @@ from seed_ids import (
     PAGO_SEMILLA_ANULADO,
     PAGO_SEMILLA_SIN_REFERENCIA,
     PAGO_SEMILLA_SIN_REFERENCIA_2,
+    PAGO_SEMILLA_TRANSFERENCIA,
     UNIDAD_SEMILLA_101,
     UNIDAD_SEMILLA_102,
 )
@@ -30,6 +31,7 @@ def test_seeds_cargan_version_operador_referencia_nula_y_anulacion_valida(engine
             ("gc.pagos", PAGO_SEMILLA_SIN_REFERENCIA),
             ("gc.pagos", PAGO_SEMILLA_SIN_REFERENCIA_2),
             ("gc.pagos", PAGO_SEMILLA_ANULADO),
+            ("gc.pagos", PAGO_SEMILLA_TRANSFERENCIA),
         )
         for tabla, seed_id in seeds_esperados:
             existe = connection.execute(
@@ -66,3 +68,16 @@ def test_seeds_cargan_version_operador_referencia_nula_y_anulacion_valida(engine
         assert pago_anulado.anulado_por == "ADMIN_DEMO"
         assert len(pago_anulado.motivo_anulacion.strip()) >= 10
         assert pago_anulado.registrado_por == "ADMIN_DEMO"
+
+
+def test_seed_transferencia_vigente_tiene_referencia(engine) -> None:
+    with engine.connect() as connection:
+        pago = connection.execute(
+            text(
+                "SELECT metodo_pago, referencia, estado FROM gc.pagos WHERE id = :pago_id"
+            ),
+            {"pago_id": PAGO_SEMILLA_TRANSFERENCIA},
+        ).one()
+    assert pago.metodo_pago == "TRANSFERENCIA"
+    assert pago.referencia == "DEMO-REF-VIGENTE"
+    assert pago.estado == "VIGENTE"
