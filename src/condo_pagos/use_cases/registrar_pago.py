@@ -37,7 +37,7 @@ class RegistrarPagoUseCase:
             ):
                 raise DominioError(
                     f"Ya existe un pago registrado con la referencia '{referencia}'."
-                    )
+                )
 
             # 3. Obtener cargos pendientes de la unidad
             cargos_pendientes = self.uow.cargos.obtener_pendientes_por_unidad(cmd.unidad_id)
@@ -59,7 +59,7 @@ class RegistrarPagoUseCase:
                 unidad_id=cmd.unidad_id,
                 monto=cmd.monto,
                 metodo_pago=metodo_pago,
-                referencia=cmd.referencia,
+                referencia=referencia,
                 residente_nombre=cmd.residente_nombre,
                 fecha=cmd.fecha_pago,
                 folio=folio,
