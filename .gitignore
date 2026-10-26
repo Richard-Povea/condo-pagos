@@ -12,5 +12,8 @@ wheels/
 # coverage
 .coverage
 
-# output_debug
-output_debug
+# Logs de ejecución (se generan localmente)
+logs/
+
+# storage
+storage

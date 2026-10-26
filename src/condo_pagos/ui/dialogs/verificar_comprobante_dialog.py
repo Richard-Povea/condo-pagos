@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import Any
+
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -5,11 +8,16 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 
 class VerificarComprobanteDialog(QDialog):
-    def __init__(self, verificar_comprobante_uc, parent=None) -> None:
+    def __init__(
+            self, 
+            verificar_comprobante_uc: Callable[[str], Any], 
+            parent: QWidget | None = None
+            ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Verificar Comprobante de Pago")
         self.resize(450, 300)

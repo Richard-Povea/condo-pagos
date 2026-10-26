@@ -7,27 +7,6 @@ from sqlalchemy import text
 
 from condo_pagos.domain.entities import Cargo, EstadoCargo, EstadoPago, Pago
 from condo_pagos.domain.errors import DominioError
-from condo_pagos.infrastructure.database.bootstrap import verificar_esquema
-from condo_pagos.infrastructure.database.engine import SessionLocal
-from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
-
-
-@pytest.fixture(scope="session", autouse=True)
-def verificar_esquema_bd():
-    """Verifica que el esquema esté listo antes de correr la suite de integración."""
-    try:
-        verificar_esquema()
-    except Exception as e:
-        pytest.skip(f"Base de datos no disponible para integración: {e}")
-
-
-@pytest.fixture
-def uow():
-    uow_instance = SqlAlchemyUnitOfWork(SessionLocal)
-    yield uow_instance
-    # Limpieza o rollback por seguridad tras cada test
-    uow_instance.session.rollback()
-    uow_instance.session.close()
 
 
 def test_integration_unidades_y_cargos(uow):
@@ -119,6 +98,7 @@ def test_integration_folios_secuencia_y_pago_duplicado(uow):
             referencia="REF-INTEGRATION-001",
             residente_nombre="Carlos Soto",
             fecha=date(2026, 10, 12),
+            registrado_por="OPERADOR_TEST",
             folio=folio1,
             exceso=Decimal("0"),
             estado=EstadoPago.VIGENTE
@@ -132,15 +112,17 @@ def test_integration_folios_secuencia_y_pago_duplicado(uow):
             id=uuid4(),
             unidad_id=unidad_id,
             monto=Decimal("15000"),
-            metodo_pago="EFECTIVO",
-            referencia="REF-INTEGRATION-001", # Misma referencia
+            metodo_pago="TRANSFERENCIA",
+            referencia="REF-INTEGRATION-001", # Misma referencia y método
             residente_nombre="Otro Residente",
             fecha=date(2026, 10, 12),
+            registrado_por="OPERADOR_TEST",
             folio=folio2,
             exceso=Decimal("0"),
             estado=EstadoPago.VIGENTE
         )
-        uow.pagos.guardar(pago_duplicado)
-        
-        with pytest.raises(DominioError, match="Ya existe un pago registrado con esa referencia"):
-            uow.commit()
+        with pytest.raises(
+            DominioError,
+            match="Ya existe un pago registrado con esa referencia",
+        ):
+            uow.pagos.guardar(pago_duplicado)

@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -119,87 +120,163 @@ class SqlAlchemyPagosRepository(PagosRepository):
         self.session = session
 
     def guardar(self, pago: Pago) -> None:
-        # Estándar: upsert basado en session.get() por ID
         model = self.session.get(PagoModel, pago.id)
         if model:
             model.estado = pago.estado
             model.exceso = pago.exceso
-        else:
-            new_model = PagoModel(
-                id=pago.id,
-                unidad_id=pago.unidad_id,
-                monto=pago.monto,
-                metodo_pago=pago.metodo_pago,
-                referencia=pago.referencia,
-                residente_nombre=pago.residente_nombre,
-                fecha=pago.fecha,
-                folio=pago.folio,
-                exceso=pago.exceso,
-                estado=pago.estado,
+            model.anulado_en = pago.anulado_en
+            model.anulado_por = pago.anulado_por
+            model.motivo_anulacion = pago.motivo_anulacion
+            pago._establecer_condominio_id(model.condominio_id)
+            return
+
+        # El condominio se obtiene desde unidades dentro del mismo INSERT.
+        # No se acepta ese dato desde la UI ni desde RegistrarPagoCmd.
+        stmt = text(
+            """
+            INSERT INTO gc.pagos (
+                id, unidad_id, condominio_id, monto, metodo_pago, referencia,
+                residente_nombre, registrado_por, fecha, folio, exceso, estado,
+                anulado_en, anulado_por, motivo_anulacion
             )
-            self.session.add(new_model)
+            SELECT
+                :id, u.id, u.condominio_id, :monto, :metodo_pago, :referencia,
+                :residente_nombre, :registrado_por, :fecha, :folio, :exceso, :estado,
+                :anulado_en, :anulado_por, :motivo_anulacion
+            FROM gc.unidades AS u
+            WHERE u.id = :unidad_id
+            RETURNING condominio_id
+            """
+        )
+        try:
+            condominio_id = self.session.execute(
+                stmt,
+                {
+                    "id": pago.id,
+                    "unidad_id": pago.unidad_id,
+                    "monto": pago.monto,
+                    "metodo_pago": pago.metodo_pago,
+                    "referencia": pago.referencia,
+                    "residente_nombre": pago.residente_nombre,
+                    "registrado_por": pago.registrado_por,
+                    "fecha": pago.fecha,
+                    "folio": pago.folio,
+                    "exceso": pago.exceso,
+                    "estado": pago.estado.value,
+                    "anulado_en": pago.anulado_en,
+                    "anulado_por": pago.anulado_por,
+                    "motivo_anulacion": pago.motivo_anulacion,
+                },
+            ).scalar_one_or_none()
+        except IntegrityError as exc:
+            self.session.rollback()
+            if "uq_pagos_referencia" in str(exc.orig):
+                raise DominioError(
+                    "Ya existe un pago registrado con esa referencia, método y condominio."
+                ) from exc
+            raise
+        if condominio_id is None:
+            raise DominioError(f"La unidad {pago.unidad_id} no existe.")
+        pago._establecer_condominio_id(condominio_id)
 
     def obtener_por_id(self, pago_id: UUID) -> Pago | None:
         model = self.session.get(PagoModel, pago_id)
         if not model:
             return None
-        return Pago(
+        pago = Pago(
             id=model.id,
             unidad_id=model.unidad_id,
             monto=model.monto,
             metodo_pago=model.metodo_pago,
             referencia=model.referencia,
             residente_nombre=model.residente_nombre,
+            registrado_por=model.registrado_por,
             fecha=model.fecha,
             folio=model.folio,
             exceso=model.exceso,
             estado=EstadoPago(model.estado),
+            anulado_en=model.anulado_en,
+            anulado_por=model.anulado_por,
+            motivo_anulacion=model.motivo_anulacion,
         )
-    
-    def existe_por_referencia(self, referencia: str) -> bool:
+        pago._establecer_condominio_id(model.condominio_id)
+        return pago
+
+    def existe_por_referencia(
+        self, referencia: str | None, condominio_id: UUID, metodo_pago: str
+    ) -> bool:
+        if referencia is None:
+            return False
         stmt = text(
-            "SELECT 1 FROM pagos WHERE referencia = :referencia AND estado = 'VIGENTE'"
+            """
+            SELECT 1 FROM gc.pagos
+            WHERE condominio_id = :condominio_id
+              AND metodo_pago = :metodo_pago
+              AND referencia = :referencia
+              AND estado = 'VIGENTE'
+            """
         )
-        res = self.session.execute(stmt, {"referencia": referencia}).fetchone()
+        res = self.session.execute(
+            stmt,
+            {
+                "referencia": referencia,
+                "condominio_id": condominio_id,
+                "metodo_pago": metodo_pago,
+            },
+        ).fetchone()
         return res is not None
 
     def listar_recientes_por_unidad(self, unidad_id: UUID, limite: int = 10) -> list[Pago]:
         stmt = text(
             """
-            SELECT id, unidad_id, monto, metodo_pago, referencia, 
-                   residente_nombre, fecha, folio, exceso, estado
-            FROM pagos
+            SELECT id, unidad_id, condominio_id, monto, metodo_pago, referencia,
+                   residente_nombre, registrado_por, fecha, folio, exceso, estado,
+                   anulado_en, anulado_por, motivo_anulacion
+            FROM gc.pagos
             WHERE unidad_id = :unidad_id
             ORDER BY fecha DESC
             LIMIT :limite
             """
         )
         result = self.session.execute(stmt, {"unidad_id": unidad_id, "limite": limite}).fetchall()
-        return [
-            Pago(
+        pagos: list[Pago] = []
+        for row in result:
+            pago = Pago(
                 id=row.id,
                 unidad_id=row.unidad_id,
                 monto=row.monto,
                 metodo_pago=row.metodo_pago,
                 referencia=row.referencia,
                 residente_nombre=row.residente_nombre,
+                registrado_por=row.registrado_por,
                 fecha=row.fecha,
                 folio=row.folio,
                 exceso=row.exceso,
                 estado=EstadoPago(row.estado),
+                anulado_en=row.anulado_en,
+                anulado_por=row.anulado_por,
+                motivo_anulacion=row.motivo_anulacion,
             )
-            for row in result
-        ]
+            pago._establecer_condominio_id(row.condominio_id)
+            pagos.append(pago)
+        return pagos
 
 
 class SqlAlchemyFoliosRepository(FoliosRepository):
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session,
+        zona_horaria: str = "America/Santiago",
+        reloj: Callable[[ZoneInfo], datetime] | None = None,
+    ) -> None:
         self.session = session
+        self.zona_horaria = zona_horaria
+        self.reloj = reloj or datetime.now
 
     def siguiente_folio(self) -> str:
-        # Obtener año actual en zona horaria de Chile para evitar desfases de cambio de año
-        ahora_cl = datetime.now(ZoneInfo("America/Santiago"))
-        anio_str = str(ahora_cl.year)
+        # El reloj recibe la zona configurada para evitar desfases al cambiar de año.
+        ahora_local = self.reloj(ZoneInfo(self.zona_horaria))
+        anio_str = str(ahora_local.year)
 
         # Upsert atómico en la tabla de folios
         stmt = text(
@@ -248,16 +325,24 @@ class SqlAlchemyComprobantesRepository(ComprobantesRepository):
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
-    def __init__(self, session_factory=None) -> None:
-        from condo_pagos.infrastructure.database.engine import SessionLocal
-        self.session_factory = session_factory or SessionLocal
+    def __init__(
+        self,
+        session_factory: Callable[[], Session],
+        zona_horaria: str = "America/Santiago",
+        reloj: Callable[[ZoneInfo], datetime] | None = None,
+    ) -> None:
+        self.session_factory = session_factory
+        self.zona_horaria = zona_horaria
+        self.reloj = reloj or datetime.now
 
     def __enter__(self) -> "SqlAlchemyUnitOfWork":
         self.session: Session = self.session_factory()
         self.unidades = SqlAlchemyUnidadesRepository(self.session)
         self.cargos = SqlAlchemyCargosRepository(self.session)
         self.pagos = SqlAlchemyPagosRepository(self.session)
-        self.folios = SqlAlchemyFoliosRepository(self.session)
+        self.folios = SqlAlchemyFoliosRepository(
+            self.session, zona_horaria=self.zona_horaria, reloj=self.reloj
+        )
         self.comprobantes = SqlAlchemyComprobantesRepository(self.session)
         return self
 

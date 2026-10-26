@@ -1,4 +1,5 @@
 from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -83,6 +84,6 @@ class MainWindow(QWidget):
         if geometria:
             self.restoreGeometry(geometria)
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         self.settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)

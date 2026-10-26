@@ -1,24 +1,33 @@
-import os
+"""Fábricas explícitas para conexiones y sesiones SQLAlchemy.
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool  # <-- Importar NullPool
+Este módulo no crea conexiones al importarse. La raíz de composición decide
+qué URL usar y entrega el engine o la fábrica de sesiones a sus consumidores.
+"""
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg://condo_test:condo_test_pw@localhost:5433/condo_test"
-)
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    future=True,
-    connect_args={"options": "-c search_path=gc,public"},
-    poolclass=NullPool,  # <-- Crucial para pruebas de concurrencia con hilos
-)
 
-SessionLocal = sessionmaker(
-    bind=engine,
-    expire_on_commit=False,
-    future=True,
-)
+def crear_engine(
+    url: str,
+    *,
+    pool_size: int = 5,
+    max_overflow: int = 5,
+    search_path: str = "gc,public",
+) -> Engine:
+    """Crea un engine para la URL recibida, sin estado global de módulo."""
+    return create_engine(
+        url,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
+        pool_pre_ping=True,
+        connect_args={
+            "connect_timeout": 5,
+            "options": f"-c search_path={search_path}",
+        },
+    )
+
+
+def crear_session_factory(engine: Engine) -> sessionmaker[Session]:
+    """Crea una fábrica de sesiones ligada al engine explícitamente recibido."""
+    return sessionmaker(bind=engine, expire_on_commit=False)

@@ -1,0 +1,103 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: condo_test
+          POSTGRES_PASSWORD: condo_test_pw
+          POSTGRES_DB: condo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U condo_test -d condo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      CONDO_TEST_DATABASE_URL: postgresql+psycopg://condo_test:condo_test_pw@localhost:5432/condo_test
+      CONDO_DATABASE_URL: postgresql+psycopg://x:x@localhost:1/prohibida
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Instalar bibliotecas Qt para pruebas headless
+        run: |
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon-x11-0 libdbus-1-3 libxcb-cursor0
+      - name: Instalar dependencias
+        run: uv sync --python 3.13 --group dev
+      - name: Bloquear la base compartida para demostrar aislamiento
+        run: |
+          PGPASSWORD=condo_test_pw psql "host=localhost port=5432 dbname=postgres user=condo_test" \
+            -v ON_ERROR_STOP=1 \
+            -c 'ALTER DATABASE condo_test WITH ALLOW_CONNECTIONS false'
+      - name: Verificar ausencia de SessionLocal en código y tests
+        run: |
+          if grep -rn "SessionLocal" src tests --include="*.py"; then
+            echo "No debe existir SessionLocal en src ni tests."
+            exit 1
+          else
+            echo "Sin referencias a SessionLocal."
+          fi
+      - name: Medir duración total de la suite
+        run: |
+          start=$(date +%s)
+          uv run --python 3.13 pytest --durations=20 --randomly-seed=20261022
+          echo "Duración de la suite principal: $(( $(date +%s) - start )) segundos"
+      - name: Suite con orden aleatorio (semilla 2)
+        run: uv run --python 3.13 pytest --randomly-seed=781234
+      - name: Suite con tres semillas aleatorias adicionales
+        run: |
+          for seed in 998731 445678 190421; do
+            uv run --python 3.13 pytest --randomly-seed="$seed"
+          done
+      - name: Reproducir secuencia seeds-concurrencia-seeds
+        run: |
+          uv run --python 3.13 pytest --durations=20 tests/integration/test_seeds_esquema.py -q
+          uv run --python 3.13 pytest --durations=20 tests/integration/test_fase4_concurrencia.py -q
+          uv run --python 3.13 pytest tests/integration/test_seeds_esquema.py -q
+      - name: Repetir pruebas de concurrencia 20 veces
+        run: uv run --python 3.13 pytest --durations=20 tests/integration/test_fase4_concurrencia.py --count=20 --randomly-seed=781234
+      - name: Ejecutar cada archivo de integración por separado
+        run: |
+          for file in \
+            tests/integration/test_esquema_vs_modelos.py \
+            tests/integration/test_fase4_concurrencia.py \
+            tests/integration/test_fase5_pdf.py \
+            tests/integration/test_payment_reference_index.py \
+            tests/integration/test_repositorios_integration.py \
+            tests/integration/test_seeds_esquema.py \
+            tests/e2e/test_smoke.py; do
+            uv run --python 3.13 pytest --durations=20 "$file" -q
+          done
+      - name: Verificar que no queden bases temporales
+        run: |
+          uv run --python 3.13 python -c "import os; from sqlalchemy import create_engine, text; from sqlalchemy.engine import make_url; e=create_engine(make_url(os.environ['CONDO_TEST_DATABASE_URL']).set(database='postgres')); c=e.connect(); names=c.execute(text(\"SELECT datname FROM pg_database WHERE left(datname, 8) = 'condo_t_' OR left(datname, 16) = 'condo_plantilla_'\")).scalars().all(); c.close(); e.dispose(); print('Bases temporales restantes:', names); assert not names"
+      - name: Verificar Ruff
+        run: uv run --python 3.13 ruff check .
+      - name: Verificar tipos estrictos
+        run: uv run --python 3.13 mypy --strict src
+      - name: Verificar límites de arquitectura
+        run: uv run --python 3.13 lint-imports
+      - name: Restaurar conexiones a la base compartida
+        if: always()
+        run: |
+          PGPASSWORD=condo_test_pw psql "host=localhost port=5432 dbname=postgres user=condo_test" \
+            -v ON_ERROR_STOP=1 \
+            -c 'ALTER DATABASE condo_test WITH ALLOW_CONNECTIONS true'

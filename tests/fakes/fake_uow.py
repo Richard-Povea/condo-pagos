@@ -40,20 +40,31 @@ class FakeCargosRepository(CargosRepository):
 
 
 class FakePagosRepository(PagosRepository):
-    def __init__(self, pagos: dict[UUID, Pago]) -> None:
+    def __init__(
+        self, pagos: dict[UUID, Pago], condominios_por_unidad: dict[UUID, UUID]
+    ) -> None:
         self._pagos = pagos
+        self._condominios_por_unidad = condominios_por_unidad
 
     def guardar(self, pago: Pago) -> None:
+        condominio_id = self._condominios_por_unidad.get(pago.unidad_id)
+        if condominio_id is not None:
+            pago._establecer_condominio_id(condominio_id)
         self._pagos[pago.id] = pago
 
     def obtener_por_id(self, pago_id: UUID) -> Pago | None:
         return self._pagos.get(pago_id)
 
-    def existe_por_referencia(self, referencia: str) -> bool:
+    def existe_por_referencia(
+        self, referencia: str | None, condominio_id: UUID, metodo_pago: str
+    ) -> bool:
         return any(
-            p.referencia == referencia and p.estado == EstadoPago.VIGENTE 
+            p.referencia == referencia
+            and p.estado == EstadoPago.VIGENTE
+            and p.condominio_id == condominio_id
+            and p.metodo_pago == metodo_pago
             for p in self._pagos.values()
-            )
+        )
 
     def listar_recientes_por_unidad(self, unidad_id: UUID, limite: int = 10) -> list[Pago]:
         filtrados = [p for p in self._pagos.values() if p.unidad_id == unidad_id]
@@ -123,7 +134,10 @@ class FakeUnitOfWork(UnitOfWork):
         # Atributos del puerto, con el tipo abstracto declarado en la base
         self.unidades = FakeUnidadesRepository(self._unidades_store)
         self.cargos = FakeCargosRepository(self._cargos_store)
-        self.pagos = FakePagosRepository(self._pagos_store)
+        condominios_por_unidad = {
+            unidad.id: unidad.condominio_id for unidad in self._unidades_store.values()
+        }
+        self.pagos = FakePagosRepository(self._pagos_store, condominios_por_unidad)
         self.folios = self._folios_fake
         self.comprobantes = self._comprobantes_fake
 

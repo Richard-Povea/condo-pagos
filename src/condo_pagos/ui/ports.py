@@ -1,0 +1,65 @@
+"""Contratos del backend consumidos por la capa de interfaz.
+
+Los contratos describen las operaciones que necesita la UI, no su implementación.
+Tanto el contenedor demo como el contenedor PostgreSQL deben satisfacerlos.
+"""
+
+from datetime import date
+from decimal import Decimal
+from typing import Any, Protocol
+from uuid import UUID
+
+
+class UnidadesPort(Protocol):
+    """Operaciones requeridas por la pantalla de unidades."""
+
+    def listar_unidades(self, solo_morosas: bool = False) -> list[Any]: ...
+    def buscar_unidades(self, texto: str = "") -> list[Any]: ...
+    def consultar_estado_cuenta(self, unidad_id: UUID | str) -> Any: ...
+
+
+class RegistrarPagoPort(Protocol):
+    """Operación requerida para registrar un pago."""
+
+    def buscar_unidades(self, texto: str = "") -> list[Any]: ...
+    def consultar_estado_cuenta(self, unidad_id: UUID | str) -> Any: ...
+    def registrar_pago(
+        self, *, unidad_id: UUID | str, monto: Decimal | int | str,
+        metodo_pago: str = "EFECTIVO", referencia: str = "",
+        operador: str = "", fecha: date | None = None,
+    ) -> Any: ...
+
+
+class PagosPort(Protocol):
+    """Operaciones requeridas por el historial de pagos."""
+
+    def listar_pagos(
+        self, *, filtros: dict[str, Any] | None = None,
+        pagina: int = 1, limite: int = 50,
+    ) -> Any: ...
+    def emitir_pdf(self, comprobante_id: str) -> str: ...
+    def anular_pago(
+        self, *, pago_id: str, motivo: str = "", operador: str = "",
+    ) -> str: ...
+
+
+class ConsultasPort(Protocol):
+    """Consultas de lectura compartidas por las pantallas de la aplicación."""
+
+    def listar_unidades(self, solo_morosas: bool = False) -> list[Any]: ...
+    def buscar_unidades(self, texto: str = "") -> list[Any]: ...
+    def consultar_estado_cuenta(self, unidad_id: UUID | str) -> Any: ...
+    def listar_pagos(
+        self, *, filtros: dict[str, Any] | None = None,
+        pagina: int = 1, limite: int = 50,
+    ) -> Any: ...
+
+
+class UiContainer(ConsultasPort, RegistrarPagoPort, PagosPort, Protocol):
+    """Contrato agregado que deben satisfacer los contenedores demo y real."""
+
+    nombre_condominio: str
+
+    def cerrar(self) -> None:
+        """Libera los recursos externos del contenedor, si los tiene."""
+        ...

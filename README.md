@@ -1,96 +1,65 @@
-# Sistema de Gestión de Gastos Comunes - Módulo de Pagos (Backend)
+# App de gestión de pagos de condominios
 
-Este módulo implementa la lógica de negocio, persistencia, generación de comprobantes en PDF y almacenamiento atómico para el sistema de pagos de condominios, siguiendo los principios de **Clean Architecture**.
+Primera etapa funcional del módulo de pagos: consulta de unidades y deuda, registro y anulación de pagos, y emisión o regeneración de comprobantes PDF desde un snapshot persistido.
 
----
+## Alcance funcional
 
-## 🏗️ Arquitectura y Estructura
+- Consultar unidades y cargos pendientes.
+- Registrar pagos y aplicar el monto a los cargos pendientes.
+- Emitir y regenerar el comprobante PDF desde el snapshot guardado.
+- Anular pagos con operador, fecha y motivo de auditoría; la anulación revierte la aplicación del pago.
+- Persistir pagos y comprobantes en PostgreSQL.
 
-El proyecto está organizado en capas estrictas para mantener el dominio desacoplado de los detalles de infraestructura:
+## Reglas de pagos
 
-```text
-src/
-└── condo_pagos/
-    ├── domain/           # Entidades de negocio, reglas puras y Value Objects
-    ├── use_cases/        # Casos de uso, puertos (interfaces) y DTOs de entrada/salida
-    └── infrastructure/   # Adaptadores concretos (Base de datos SQLAlchemy, ReportLab, FileSystem)
+- Los valores admitidos por el esquema son `EFECTIVO`, `TRANSFERENCIA` y `TARJETA`.
+- En esta primera etapa de operación solo están habilitados `EFECTIVO` y `TRANSFERENCIA`; `TARJETA` queda reservado para una etapa posterior.
+- El pago en efectivo puede registrarse sin referencia.
+- La transferencia debe tener una referencia no vacía (por ejemplo, el número de operación).
+- La referencia de una transferencia debe ser única para el mismo condominio y método entre pagos vigentes. Una referencia puede reutilizarse tras anular el pago, y puede existir en otro condominio.
+- Antes de registrar una transferencia, el operador debe confirmar que el abono aparece en la cuenta bancaria. Esta aplicación no realiza conciliación bancaria.
+- Cada pago registra quién lo ingresó. Las anulaciones conservan quién la realizó, cuándo y el motivo.
+- Los comprobantes conservan su folio, snapshot y hashes. El archivo PDF puede regenerarse desde el snapshot; no se adjunta evidencia bancaria.
+- No se eliminan pagos para corregir errores: se anulan con un motivo justificable.
 
+## Arquitectura
+
+El código se organiza por capas: `domain/` para entidades y reglas de negocio, `use_cases/` para casos de uso y puertos, `infrastructure/` para PostgreSQL, PDF y adaptadores, y `ui/` para la interfaz de escritorio. La composición de producción se centraliza en `condo_pagos.bootstrap`.
+
+## Requisitos
+
+- Python 3.13 (configurado en CI).
+- `uv`.
+- Docker y Docker Compose.
+- PostgreSQL 16 (se proporciona mediante Compose).
+
+## Desarrollo local
+
+Levantar la base de desarrollo:
+
+```powershell
+docker compose up -d --wait db
 ```
 
-📋 Contrato de Casos de Uso (API para la UI)
-1. RegistrarPagoUseCase
-Registra un nuevo pago, aplica los fondos a los cargos pendientes de una unidad, genera un snapshot inmutable, renderiza el comprobante PDF y lo almacena de forma atómica.
+Levantar la base de integración:
 
-Entrada (RegistrarPagoCommand):
+```powershell
+docker compose --profile test up -d --wait db_test
+```
 
-unidad_id (UUID): Identificador de la unidad inmobiliaria.
+Las bases se inicializan con `db/01-schema.sql` y `db/02-seeds.sql`. Los seeds contienen datos ficticios y solo deben usarse en desarrollo y pruebas, nunca en producción.
 
-monto (Decimal): Monto total pagado.
+Ejecutar las pruebas y verificaciones:
 
-metodo_pago (str): Método utilizado (ej. TRANSFERENCIA, EFECTIVO).
+```powershell
+uv run pytest
+uv run ruff check .
+uv run mypy --strict src
+uv run lint-imports
+```
 
-referencia (str): Código o número de comprob externo.
+Para probar la integración PostgreSQL, configurar `CONDO_TEST_DATABASE_URL` según las variables de entorno del servicio `db_test`.
 
-residente_nombre (str): Nombre de la persona que realiza el pago.
+## Estado de esta entrega
 
-fecha (datetime): Fecha y hora del pago.
-
-Salida (ComprobanteDTO / Snapshot):
-
-folio (str): Identificador único del comprobante (ej. 2026-000001).
-
-monto_pagado (Decimal): Monto registrado.
-
-exceso (Decimal): Saldo a favor generado, si aplica.
-
-pdf_ruta (str): Ruta relativa del archivo PDF almacenado.
-
-Errores de Dominio Posibles:
-
-DominioError: "Ya existe un pago registrado con esa referencia."
-
-DominioError: "El monto excede la deuda pendiente de la unidad."
-
-2. AnularPagoUseCase
-Anula un pago registrado previamente y revierte la aplicación de los cargos asociados.
-
-Entrada (AnularPagoCommand):
-
-pago_id (UUID): Identificador único del pago a anular.
-
-Salida: None
-
-Errores de Dominio Posibles:
-
-DominioError: "El pago no existe o ya se encuentra anulado."
-
-🚀 Despliegue e Instalación en Servidor
-1. Requisitos Previos
-Python 3.11+ con gestor de paquetes uv.
-
-PostgreSQL activo.
-
-2. Base de Datos
-Para inicializar el esquema en un servidor de producción o pruebas:
-
-psql "$DATABASE_URL" -f docker/postgres/01-schema.sql
-⚠️ IMPORTANTE: Los scripts de datos de prueba (02-seeds.sql) NUNCA deben cargarse en entornos de producción.
-
-3. Entorno de Desarrollo con Docker
-Para levantar los servicios de infraestructura necesarios localmente:
-
-docker compose up -d db
-
-# Documentación del Módulo de Interfaz (UI) - Condominios
-
-## 📐 Estructura de Wireframes y Diseño
-La interfaz del módulo de pagos está diseñada bajo un enfoque de alta velocidad y cero ambigüedad para cajeros y administradores:
-- **Estilo Base:** Qt Fusion con paleta limpia y tokens centralizados en `condo_pagos.ui.theme.tokens`.
-- **Navegación Lateral:** Sidebar fija con accesos directos a:
-  1. **Registrar pago** (Pantalla principal con desglose de deuda y opciones rápidas como *"Pagar todo"* o *"Solo el más antiguo"*).
-  2. **Unidades** (Gestión y consulta de saldos).
-  3. **Pagos** (Historial y reemisión de comprobantes).
-  4. **Configuración** (Ajustes locales y operador).
-
-## 🛡️ Contrato de Errores UI
-Cualquier excepción controlada (`ErrorDeAplicacion` o `ErrorDeInfraestructura`) que emita el backend es interceptada por el `Worker` asíncrono y traducida a un mensaje claro en la interfaz sin exponer trazas técnicas.
+Esta etapa no incluye habilitar pagos con tarjeta, adjuntar comprobantes bancarios, conciliar movimientos bancarios ni administrar todos los aspectos del condominio. La entrega se considera candidata a primera versión cuando CI complete satisfactoriamente las pruebas y verificaciones descritas.

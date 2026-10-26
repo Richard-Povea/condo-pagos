@@ -1,9 +1,11 @@
+from typing import Any
+
 from condo_pagos.ui.components.tabla_base import BaseTableModel
 from condo_pagos.ui.formatters import fmt_clp
 
 
 class UnidadesTableModel(BaseTableModel):
-    def __init__(self, unidades: list) -> None:
+    def __init__(self, unidades: list[Any]) -> None:
         headers = ["Unidad", "Responsable", "RUT", "Saldo Total", "Estado"]
         
         # Transformar DTOs a filas planas compatibles con la tabla

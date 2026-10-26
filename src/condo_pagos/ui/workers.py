@@ -1,5 +1,7 @@
 import logging
 import uuid
+from collections.abc import Callable
+from typing import Any
 
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
@@ -12,7 +14,7 @@ class _Signals(QObject):
     fail = Signal(str, str)       # (id_worker, mensaje)
 
 class Worker(QRunnable):
-    def __init__(self, fn, *args) -> None:
+    def __init__(self, fn: Callable[..., Any], *args: Any) -> None:
         super().__init__()
         self.setAutoDelete(False) # El ViewModel decide cuándo soltarlo
         self.id = uuid.uuid4().hex
