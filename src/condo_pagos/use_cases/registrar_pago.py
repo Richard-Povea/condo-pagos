@@ -16,7 +16,7 @@ class RegistrarPagoUseCase:
         metodo_pago = cmd.metodo_pago.strip().upper()
         if metodo_pago not in {MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA}:
             raise DominioError(
-                "El método de pago debe ser EFECTIVO o TRANSFERENCIA; TARJETA aún no está habilitado."
+                "El método debe ser EFECTIVO o TRANSFERENCIA; TARJETA no está habilitado."
             )
 
         referencia = (cmd.referencia or "").strip() or None
