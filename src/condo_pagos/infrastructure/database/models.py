@@ -111,7 +111,7 @@ class PagoModel(Base):
             name="ck_pagos_referencia_requerida",
         ),
         CheckConstraint(
-            "referencia IS NULL OR referencia !~ '^[[:space:]]*",
+            "referencia IS NULL OR length(regexp_replace(referencia, '[[:space:]]', '', 'g')) > 0
             name="ck_pagos_referencia_no_vacia",
         ),
         CheckConstraint(
