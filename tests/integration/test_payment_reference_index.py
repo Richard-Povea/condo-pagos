@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 
 pytestmark = pytest.mark.integration
 
@@ -195,7 +195,7 @@ def test_metodos_no_admitidos_son_rechazados_por_enum(engine, metodo: str) -> No
         transaction = connection.begin()
         try:
             _insertar_unidad(connection, unidad_id, condominio_id, "IDX-ENUM")
-            with pytest.raises(IntegrityError), connection.begin_nested():
+            with pytest.raises((DataError, IntegrityError)), connection.begin_nested():
                 _insertar_pago(connection, pago_id=uuid4(), unidad_id=unidad_id,
                                condominio_id=condominio_id, metodo=metodo,
                                referencia=None, folio="IDX-ENUM-BAD")
