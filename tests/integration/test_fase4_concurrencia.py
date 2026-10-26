@@ -356,7 +356,10 @@ def test_anulacion_restaura_todos_los_cargos_del_comprobante(session_local, engi
 
     with engine.connect() as connection:
         cargos = connection.execute(
-            text("SELECT id, monto_original, saldo, estado FROM gc.cargos WHERE id = ANY(:ids) ORDER BY id"),
+            text(
+                "SELECT id, monto_original, saldo, estado "
+                "FROM gc.cargos WHERE id = ANY(:ids) ORDER BY id"
+            ),
             {"ids": cargo_ids},
         ).fetchall()
     assert len(cargos) == 2
