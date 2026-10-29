@@ -6,7 +6,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError, DataError, IntegrityError, OperationalError
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from condo_pagos.domain.comprobante import ComprobanteData
@@ -16,13 +16,13 @@ from condo_pagos.domain.errors import (
     MotivoAnulacionInvalidoError,
     ReferenciaRequeridaError,
 )
-from condo_pagos.infrastructure.errors import ErrorDeInfraestructura
 from condo_pagos.infrastructure.database.models import (
     CargoModel,
     ComprobanteModel,
     PagoModel,
     UnidadModel,
 )
+from condo_pagos.infrastructure.errors import ErrorDeInfraestructura
 from condo_pagos.use_cases.dto import UnidadInfo
 from condo_pagos.use_cases.ports import (
     CargosRepository,
