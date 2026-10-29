@@ -16,7 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from condo_pagos.domain.comprobante import ComprobanteData
-from condo_pagos.domain.errors import DominioError
+from condo_pagos.domain.errors import DominioError, PagoNoEncontradoError
 from condo_pagos.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from condo_pagos.infrastructure.errors import ErrorDeInfraestructura
 from condo_pagos.infrastructure.pdf_generator.reportlab_renderer import ReportLabPdfRenderer
@@ -50,33 +50,18 @@ class OperacionesPagoPostgres:
         operador: str = "",
         fecha: date | None = None,
     ) -> SimpleNamespace:
-        if not operador or not operador.strip():
-            raise ValueError("Debe indicar el operador que registra el pago.")
-
-        referencia_limpia = referencia.strip() or None
         try:
             unidad_uuid = UUID(str(unidad_id))
-        except ValueError as exc:
-            raise ValueError(f"Identificador de unidad inválido: {unidad_id}") from exc
-
-        try:
-            with self._session_factory() as session:
-                unidad = session.execute(
-                    text("SELECT codigo FROM unidades WHERE id = :id"),
-                    {"id": unidad_uuid},
-                ).fetchone()
-        except SQLAlchemyError as exc:
-            raise ErrorDeInfraestructura() from exc
-        if unidad is None:
-            raise DominioError(f"La unidad {unidad_id} no existe.")
+        except Exception as exc:
+            raise DominioError(f"Identificador de unidad inválido: {unidad_id}") from exc
 
         cmd = RegistrarPagoCmd(
             unidad_id=unidad_uuid,
             monto=Decimal(str(monto)),
             metodo_pago=metodo_pago,
-            referencia=referencia_limpia,
+            referencia=referencia,
             residente_nombre="No informado",
-            registrado_por=operador.strip(),
+            registrado_por=operador,
             fecha_pago=fecha or date.today(),
         )
         try:
@@ -110,22 +95,22 @@ class OperacionesPagoPostgres:
         pago_uuid: UUID | None
         try:
             pago_uuid = UUID(str(pago_id))
-        except ValueError:
+        except Exception:
             with self._session_factory() as session:
                 pago_uuid = session.execute(
-                    text("SELECT id FROM pagos WHERE folio = :folio"),
+                    text("SELECT id FROM gc.pagos WHERE folio = :folio"),
                     {"folio": pago_id},
                 ).scalar_one_or_none()
             if pago_uuid is None:
-                raise ValueError(f"No se encontró el pago {pago_id}") from None
+                raise PagoNoEncontradoError(f"No se encontró el pago {pago_id}.") from None
 
         with self._session_factory() as session:
             folio = session.execute(
-                text("SELECT folio FROM pagos WHERE id = :id"),
+                text("SELECT folio FROM gc.pagos WHERE id = :id"),
                 {"id": pago_uuid},
             ).scalar_one_or_none()
         if folio is None:
-            raise ValueError(f"No se encontró el pago {pago_id}")
+            raise PagoNoEncontradoError(f"No se encontró el pago {pago_id}.")
 
         try:
             AnularPagoUseCase(self._uow_factory()).ejecutar(
@@ -151,7 +136,7 @@ class OperacionesPagoPostgres:
                 {"folio": comprobante_id, "identificador": comprobante_id},
             ).fetchone()
         if row is None:
-            raise ValueError(f"No existe el comprobante {comprobante_id}")
+            raise DominioError(f"No existe el comprobante {comprobante_id}.")
 
         datos_json = (
             row.datos_json
