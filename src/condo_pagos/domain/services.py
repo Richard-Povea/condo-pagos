@@ -42,7 +42,7 @@ def distribuir_pago(
     deuda_total = sum((c.saldo for c in cargos_ordenados), Decimal("0"))
     if monto_restante > deuda_total:
         exceso_calculado = monto_restante - deuda_total
-        mensaje = "El pago ingresado (%) excede la deuda total pendiente (%) por %."
+        mensaje = "El pago ingresado ({}) excede la deuda total pendiente ({}) por {}."
         raise PagoExcedeDeudaError(
             mensaje.format(monto_restante, deuda_total, exceso_calculado)
         )
@@ -103,7 +103,7 @@ def prorratear(
     # Validar que la suma de alícuotas sea igual a 1 (100%)
     suma_alicuotas = sum((ua.alicuota for ua in unidades_alicuotas), Decimal("0"))
     if abs(suma_alicuotas - Decimal("1.0")) > Decimal("0.000001"):
-        mensaje = "La suma de las alícuotas de las unidades debe ser 1.0 (suma actual: %)."
+        mensaje = "La suma de las alícuotas de las unidades debe ser 1.0 (suma actual: {})."
         raise DominioError(mensaje.format(suma_alicuotas))
 
     resultados: dict[UUID, Decimal] = {}
@@ -126,6 +126,7 @@ def prorratear(
 
     # Garantía matemática de cierre contable
     mensaje_error = "El prorrateo no cerró exacto con el total."
-    assert sum(resultados.values(), Decimal("0")) == total, mensaje_error
+    if sum(resultados.values(), Decimal("0")) != total:
+        raise DominioError(mensaje_error)
 
     return resultados
