@@ -20,6 +20,9 @@ class MetodoPago(StrEnum):
     TARJETA = "TARJETA"
 
 
+METODOS_HABILITADOS = frozenset({MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA})
+
+
 @dataclass
 class Cargo:
     id: UUID
@@ -106,11 +109,3 @@ class Pago:
         self.monto = cuantizar(self.monto)
         self.exceso = cuantizar(self.exceso)
 
-    def anular(self, *, operador: str, motivo: str) -> None:
-        """Marca el pago como anulado y guarda los datos de auditoría."""
-        if self.estado == EstadoPago.ANULADO:
-            raise DominioError("El pago ya se encuentra anulado.")
-        self.estado = EstadoPago.ANULADO
-        self.anulado_en = datetime.now(UTC)
-        self.anulado_por = operador.strip()
-        self.motivo_anulacion = motivo.strip()
