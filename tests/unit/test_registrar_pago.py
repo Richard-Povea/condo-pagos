@@ -236,9 +236,50 @@ def test_tarjeta_no_esta_habilitada(py_fixture_uow):
         fecha_pago=date(2026, 10, 12),
     )
 
-    with pytest.raises(DominioError, match="TARJETA no está habilitado"):
+    with pytest.raises(DominioError) as exc:
         RegistrarPagoUseCase(uow).ejecutar(cmd)
 
+    assert str(exc.value) == "Este método de pago aún no está habilitado."
+    assert len(uow._pagos_store) == 0
+
+
+def test_metodo_desconocido_mensaje_exacto(py_fixture_uow):
+    uow = py_fixture_uow
+    unidad_id = list(uow._unidades_store.keys())[0]
+    cmd = RegistrarPagoCmd(
+        unidad_id=unidad_id,
+        monto=Decimal("10000"),
+        metodo_pago="CHEQUE",
+        referencia=None,
+        residente_nombre="Residente de prueba",
+        registrado_por="OPERADOR_TEST",
+        fecha_pago=date(2026, 10, 12),
+    )
+
+    with pytest.raises(DominioError) as exc:
+        RegistrarPagoUseCase(uow).ejecutar(cmd)
+
+    assert str(exc.value) == "Método de pago no reconocido."
+    assert len(uow._pagos_store) == 0
+
+
+def test_tarjeta_con_espacios_y_minusculas_sigue_no_habilitada(py_fixture_uow):
+    uow = py_fixture_uow
+    unidad_id = list(uow._unidades_store.keys())[0]
+    cmd = RegistrarPagoCmd(
+        unidad_id=unidad_id,
+        monto=Decimal("10000"),
+        metodo_pago=" tarjeta ",
+        referencia=None,
+        residente_nombre="Residente de prueba",
+        registrado_por="OPERADOR_TEST",
+        fecha_pago=date(2026, 10, 12),
+    )
+
+    with pytest.raises(DominioError) as exc:
+        RegistrarPagoUseCase(uow).ejecutar(cmd)
+
+    assert str(exc.value) == "Este método de pago aún no está habilitado."
     assert len(uow._pagos_store) == 0
 
 
