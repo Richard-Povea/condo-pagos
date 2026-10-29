@@ -6,7 +6,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError, DataError, IntegrityError, OperationalError
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from condo_pagos.domain.comprobante import ComprobanteData
