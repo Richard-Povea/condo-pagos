@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from condo_pagos.domain.errors import OperadorInvalidoError
 from condo_pagos.infrastructure.database import payment_operations as adapter_module
 from condo_pagos.infrastructure.database.payment_operations import OperacionesPagoPostgres
 
@@ -43,17 +44,18 @@ def test_operador_vacio_se_rechaza_antes_de_acceder_a_la_base() -> None:
         pdf_dir=Path("unused-test-pdfs"),
     )
 
-    with pytest.raises(ValueError, match="operador"):
+    with pytest.raises(OperadorInvalidoError) as exc:
         adapter.registrar_pago(
             unidad_id=uuid4(),
             monto=1000,
             operador="   ",
         )
 
+    assert str(exc.value) == "Debe indicar un operador válido."
     assert called is False
 
 
-def test_referencia_vacia_se_normaliza_a_none_y_fecha_se_conserva(
+def test_referencia_se_normaliza_en_el_caso_de_uso_y_fecha_se_conserva(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured = {}
@@ -86,7 +88,8 @@ def test_referencia_vacia_se_normaliza_a_none_y_fecha_se_conserva(
     )
 
     cmd = captured["cmd"]
-    assert cmd.referencia is None
+    # El adaptador conserva el dato de entrada; el caso de uso normaliza la referencia.
+    assert cmd.referencia == "   "
     assert cmd.fecha_pago == fecha_pago
     assert cmd.registrado_por == "Administración"
     assert cmd.residente_nombre == "No informado"
