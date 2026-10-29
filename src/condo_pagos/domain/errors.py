@@ -40,3 +40,26 @@ class PeriodoNoEmitidoError(DominioError):
     """Se lanza cuando se intenta asociar un cargo a un periodo de cobro que no ha sido emitido."""
 
     pass
+
+class MetodoNoHabilitadoError(DominioError):
+    """El método de pago existe, pero aún no está habilitado."""
+
+
+class ReferenciaRequeridaError(DominioError):
+    """La transferencia requiere una referencia."""
+
+
+class ReferenciaInvalidaError(DominioError):
+    """La referencia no cumple las reglas de longitud."""
+
+
+class OperadorInvalidoError(DominioError):
+    """El operador no cumple las reglas de longitud."""
+
+
+class MotivoAnulacionInvalidoError(DominioError):
+    """El motivo de anulación no cumple las reglas de longitud."""
+
+
+class PagoNoEncontradoError(DominioError):
+    """No se encontró el pago solicitado."""
