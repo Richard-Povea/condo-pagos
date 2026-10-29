@@ -1,8 +1,13 @@
 from uuid import uuid4
 
 from condo_pagos.domain.comprobante import ComprobanteData, LineaCargo
-from condo_pagos.domain.entities import EstadoPago, MetodoPago, Pago
-from condo_pagos.domain.errors import DominioError
+from condo_pagos.domain.entities import METODOS_HABILITADOS, EstadoPago, MetodoPago, Pago
+from condo_pagos.domain.errors import (
+    DominioError,
+    MetodoNoHabilitadoError,
+    ReferenciaRequeridaError,
+)
+from condo_pagos.domain.validaciones import normalizar_referencia, validar_operador
 from condo_pagos.domain.services import distribuir_pago
 from condo_pagos.use_cases.dto import ComprobanteEmitido, RegistrarPagoCmd
 from condo_pagos.use_cases.ports import UnitOfWork
@@ -13,15 +18,19 @@ class RegistrarPagoUseCase:
         self.uow = uow
 
     def ejecutar(self, cmd: RegistrarPagoCmd) -> ComprobanteEmitido:
-        metodo_pago = cmd.metodo_pago.strip().upper()
-        if metodo_pago not in {MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA}:
-            raise DominioError(
-                "El método debe ser EFECTIVO o TRANSFERENCIA; TARJETA no está habilitado."
-            )
+        metodo_texto = cmd.metodo_pago.strip().upper()
+        try:
+            metodo = MetodoPago(metodo_texto)
+        except ValueError as exc:
+            raise DominioError("Método de pago no reconocido.") from exc
+        if metodo not in METODOS_HABILITADOS:
+            raise MetodoNoHabilitadoError("Este método de pago aún no está habilitado.")
+        metodo_pago = metodo.value
 
-        referencia = (cmd.referencia or "").strip() or None
-        if metodo_pago == MetodoPago.TRANSFERENCIA and referencia is None:
-            raise DominioError("La transferencia debe tener una referencia no vacía.")
+        referencia = normalizar_referencia(cmd.referencia)
+        if metodo == MetodoPago.TRANSFERENCIA and referencia is None:
+            raise ReferenciaRequeridaError("La transferencia debe tener una referencia no vacía.")
+        operador = validar_operador(cmd.registrado_por)
 
         with self.uow:
             # 1. Validar que la unidad exista y esté activa
@@ -63,7 +72,7 @@ class RegistrarPagoUseCase:
                 residente_nombre=cmd.residente_nombre,
                 fecha=cmd.fecha_pago,
                 folio=folio,
-                registrado_por=cmd.registrado_por,
+                registrado_por=operador,
                 exceso=resultado_distribucion.exceso,
                 estado=EstadoPago.VIGENTE,
             )
