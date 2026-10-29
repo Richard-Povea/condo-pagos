@@ -23,6 +23,9 @@ class MetodoPago(StrEnum):
 METODOS_HABILITADOS = frozenset({MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA})
 
 
+METODOS_HABILITADOS = frozenset({MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA})
+
+
 @dataclass
 class Cargo:
     id: UUID
