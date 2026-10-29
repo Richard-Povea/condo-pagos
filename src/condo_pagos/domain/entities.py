@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
@@ -18,9 +18,6 @@ class MetodoPago(StrEnum):
     EFECTIVO = "EFECTIVO"
     TRANSFERENCIA = "TRANSFERENCIA"
     TARJETA = "TARJETA"
-
-
-METODOS_HABILITADOS = frozenset({MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA})
 
 
 METODOS_HABILITADOS = frozenset({MetodoPago.EFECTIVO, MetodoPago.TRANSFERENCIA})
@@ -111,4 +108,3 @@ class Pago:
     def __post_init__(self) -> None:
         self.monto = cuantizar(self.monto)
         self.exceso = cuantizar(self.exceso)
-
