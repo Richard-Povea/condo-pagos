@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from condo_pagos.domain.errors import DominioError, PagoYaAnuladoError
+from condo_pagos.domain.errors import DominioError, PagoNoEncontradoError, PagoYaAnuladoError
+from condo_pagos.domain.validaciones import validar_motivo, validar_operador
 from condo_pagos.use_cases.ports import UnitOfWork
 
 
@@ -10,16 +11,18 @@ class AnularPagoUseCase:
         self.uow = uow
 
     def ejecutar(self, pago_id: UUID, *, operador: str, motivo: str) -> None:
+        operador_validado = validar_operador(operador)
+        motivo_validado = validar_motivo(motivo)
         with self.uow:
             # SQL directo: no cargar PagoModel antes del UPDATE compare-and-set.
             folio_existente = self.uow.pagos.obtener_folio_existente(pago_id)
             if folio_existente is None:
-                raise DominioError(f"El pago {pago_id} no existe.")
+                raise PagoNoEncontradoError(f"No se encontró el pago {pago_id}.")
 
             folio = self.uow.pagos.anular_si_vigente(
                 pago_id,
-                operador=operador.strip(),
-                motivo=motivo.strip(),
+                operador=operador_validado,
+                motivo=motivo_validado,
                 ahora=datetime.now(UTC),
             )
             if folio is None:
