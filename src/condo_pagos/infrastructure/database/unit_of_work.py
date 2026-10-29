@@ -1,6 +1,6 @@
 import json
-from collections.abc import Callable
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -402,7 +402,9 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
                     "Los datos de auditoría de anulación no son válidos."
                 ) from exc
             if "ck_cargos_saldo" in detalle:
-                raise DominioError("El saldo del cargo no puede ser negativo ni superar su monto original.") from exc
+                raise DominioError(
+                    "El saldo del cargo no puede ser negativo ni superar su monto original."
+                ) from exc
             if "uq_pagos_referencia" in detalle or "pagos_referencia_key" in detalle:
                 raise DominioError(
                     "Ya existe un pago registrado con esa referencia, método y condominio."
@@ -417,7 +419,8 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
             self.session.rollback()
             if isinstance(exc, OperationalError) or exc.connection_invalidated:
                 raise ErrorDeInfraestructura(
-                    "No se pudo confirmar la operación. Antes de reintentar, revise en Pagos si el pago quedó registrado."
+                    "No se pudo confirmar la operación. Antes de reintentar, "
+                    "revise en Pagos si el pago quedó registrado."
                 ) from exc
             log.exception("Error de base de datos inesperado al confirmar la transacción.")
             raise
