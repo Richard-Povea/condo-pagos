@@ -7,8 +7,8 @@ from condo_pagos.domain.errors import (
     MetodoNoHabilitadoError,
     ReferenciaRequeridaError,
 )
-from condo_pagos.domain.validaciones import normalizar_referencia, validar_operador
 from condo_pagos.domain.services import distribuir_pago
+from condo_pagos.domain.validaciones import normalizar_referencia, validar_operador
 from condo_pagos.use_cases.dto import ComprobanteEmitido, RegistrarPagoCmd
 from condo_pagos.use_cases.ports import UnitOfWork
 
