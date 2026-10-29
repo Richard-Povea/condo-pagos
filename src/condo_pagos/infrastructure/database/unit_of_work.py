@@ -1,16 +1,22 @@
 import json
 from collections.abc import Callable
+import logging
 from datetime import datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, DataError, IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from condo_pagos.domain.comprobante import ComprobanteData
 from condo_pagos.domain.entities import Cargo, EstadoCargo, EstadoPago, Pago
-from condo_pagos.domain.errors import DominioError
+from condo_pagos.domain.errors import (
+    DominioError,
+    MotivoAnulacionInvalidoError,
+    ReferenciaRequeridaError,
+)
+from condo_pagos.infrastructure.errors import ErrorDeInfraestructura
 from condo_pagos.infrastructure.database.models import (
     CargoModel,
     ComprobanteModel,
@@ -26,6 +32,9 @@ from condo_pagos.use_cases.ports import (
     UnidadesRepository,
     UnitOfWork,
 )
+
+
+log = logging.getLogger(__name__)
 
 
 class SqlAlchemyUnidadesRepository(UnidadesRepository):
@@ -123,13 +132,7 @@ class SqlAlchemyPagosRepository(PagosRepository):
     def guardar(self, pago: Pago) -> None:
         model = self.session.get(PagoModel, pago.id)
         if model:
-            model.estado = pago.estado
-            model.exceso = pago.exceso
-            model.anulado_en = pago.anulado_en
-            model.anulado_por = pago.anulado_por
-            model.motivo_anulacion = pago.motivo_anulacion
-            pago._establecer_condominio_id(model.condominio_id)
-            return
+            raise DominioError("No se permite actualizar un pago existente mediante guardar().")
 
         # El condominio se obtiene desde unidades dentro del mismo INSERT.
         # No se acepta ese dato desde la UI ni desde RegistrarPagoCmd.
@@ -386,12 +389,37 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     def commit(self) -> None:
         try:
             self.session.commit()
-        except IntegrityError as e:
+        except IntegrityError as exc:
             self.session.rollback()
-            # Traducción de errores según regla de negocio (ej. referencia duplicada)
-            error_msg = str(e.orig)
-            if "uq_pagos_referencia" in error_msg or "pagos_referencia_key" in error_msg:
-                raise DominioError("Ya existe un pago registrado con esa referencia.") from e
+            constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
+            detalle = f"{constraint or ''} {exc.orig}".casefold()
+            if "ck_pagos_referencia_requerida" in detalle:
+                raise ReferenciaRequeridaError(
+                    "La transferencia debe tener una referencia no vacía."
+                ) from exc
+            if "ck_pagos_anulacion" in detalle:
+                raise MotivoAnulacionInvalidoError(
+                    "Los datos de auditoría de anulación no son válidos."
+                ) from exc
+            if "ck_cargos_saldo" in detalle:
+                raise DominioError("El saldo del cargo no puede ser negativo ni superar su monto original.") from exc
+            if "uq_pagos_referencia" in detalle or "pagos_referencia_key" in detalle:
+                raise DominioError(
+                    "Ya existe un pago registrado con esa referencia, método y condominio."
+                ) from exc
+            log.exception("Error de integridad inesperado al confirmar la transacción.")
+            raise
+        except DataError:
+            self.session.rollback()
+            log.exception("Error de datos inesperado al confirmar la transacción.")
+            raise
+        except DBAPIError as exc:
+            self.session.rollback()
+            if isinstance(exc, OperationalError) or exc.connection_invalidated:
+                raise ErrorDeInfraestructura(
+                    "No se pudo confirmar la operación. Antes de reintentar, revise en Pagos si el pago quedó registrado."
+                ) from exc
+            log.exception("Error de base de datos inesperado al confirmar la transacción.")
             raise
 
     def rollback(self) -> None:
